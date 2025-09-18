@@ -86,7 +86,7 @@ const Footer = () => {
 
                 <li>
                   <a
-                    href="mailto:ducoart@12.com"
+                    href="mailto:duco@ducoart.com"
                     className="hover:text-[#E5C870]"
                   >
                     Help and support

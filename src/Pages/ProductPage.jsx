@@ -147,14 +147,6 @@ const ProductPage = () => {
             {product?.products_name}
           </h1>
           <p className="text-2xl font-semibold">₹{price}</p>
-
-          <button
-            onClick={() => navigate("/getbulk")}
-            className="bg-[#E5C870] hover:bg-green-600 text-black font-bold px-4 py-2 rounded"
-          >
-            Get Your Free Bulk Quote
-          </button>
-
           <ul className="grid grid-cols-2 gap-1 text-sm text-white">
             <li>
               <FaCheckCircle className="inline mr-1 text-green-600" />
