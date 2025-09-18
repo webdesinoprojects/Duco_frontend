@@ -15,19 +15,22 @@ import axios from "axios";
 import { createDesign, getproductssingle } from "../Service/APIservice";
 import { useParams, useNavigate } from "react-router-dom";
 
+// ======================== DRAGGABLE ITEM ========================
 const DraggableItem = ({ id, children, position = { x: 0, y: 0 } }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+
   const style = {
     position: "absolute",
+    left: `${position.x}%`,
+    top: `${position.y}%`,
     transform: transform
-      ? `translate3d(${position.x + transform.x}px, ${
-          position.y + transform.y
-        }px, 0)`
-      : `translate3d(${position.x}px, ${position.y}px, 0)`,
+      ? `translate(${transform.x}px, ${transform.y}px)`
+      : "translate(0, 0)",
     cursor: "move",
     zIndex: 20,
-    touchAction: "none", // Important for mobile drag
+    touchAction: "none",
   };
+
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
       {children}
@@ -35,6 +38,7 @@ const DraggableItem = ({ id, children, position = { x: 0, y: 0 } }) => {
   );
 };
 
+// ======================== MAIN COMPONENT ========================
 const TshirtDesigner = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({});
@@ -45,30 +49,19 @@ const TshirtDesigner = () => {
 
   const views = ["front", "back", "left", "right"];
 
-  // Configure sensors for both mouse and touch
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
+      activationConstraint: { delay: 250, tolerance: 5 },
     })
   );
 
   const defaultSideState = (view) => {
-    let defaultTextPos = { x: 50, y: 100 }; // fallback
-
-    if (view === "front") {
-      // Pocket area → right chest (wearer’s right)
-      defaultTextPos = { x: 360, y: 180 };
-    } else if (view === "back") {
-      // Top center (near neck)
-      defaultTextPos = { x: 280, y: 80 };
-    } else if (view === "left" || view === "right") {
-      // Center of half sleeve
-      defaultTextPos = { x: 300, y: 150 };
-    }
+    let defaultTextPos = { x: 50, y: 100 };
+    if (view === "front") defaultTextPos = { x: 55, y: 25 };
+    else if (view === "back") defaultTextPos = { x: 42, y: 12 };
+    else if (view === "left" || view === "right")
+      defaultTextPos = { x: 45, y: 25 };
 
     return {
       uploadedImage: null,
@@ -102,20 +95,16 @@ const TshirtDesigner = () => {
   const navigate = useNavigate();
   const colorWithHash = `#${color}`;
 
-  const getViewIndex = (s) => {
-    const map = { front: 0, back: 1, left: 2, right: 3 };
-    return map[s] ?? 0;
-  };
+  const getViewIndex = (s) =>
+    ({ front: 0, back: 1, left: 2, right: 3 }[s] ?? 0);
 
-  // Handle window resize for responsiveness
+  // ======================== EFFECTS ========================
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
-      // Auto-close sidebar when switching to desktop
       if (!mobile && sidebarOpen) setSidebarOpen(false);
     };
-
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [sidebarOpen]);
@@ -133,11 +122,9 @@ const TshirtDesigner = () => {
       }
     };
     getdata();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proid, color]);
+  }, [proid, color, colorWithHash]);
 
-  const currentDesign = allDesigns[side];
-
+  // ======================== HANDLERS ========================
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -154,10 +141,7 @@ const TshirtDesigner = () => {
   const updateCurrentDesign = (property, value) => {
     setAllDesigns((prev) => ({
       ...prev,
-      [side]: {
-        ...prev[side],
-        [property]: value,
-      },
+      [side]: { ...prev[side], [property]: value },
     }));
   };
 
@@ -165,45 +149,41 @@ const TshirtDesigner = () => {
     (event) => {
       const { active, delta } = event;
       const id = active.id;
-      setAllDesigns((prev) => ({
-        ...prev,
-        [side]: {
-          ...prev[side],
-          positions: {
-            ...prev[side].positions,
-            [id]: {
-              x: (prev[side].positions[id]?.x || 0) + delta.x,
-              y: (prev[side].positions[id]?.y || 0) + delta.y,
+      const container = designRefs[side]?.current;
+      if (!container) return;
+
+      const { offsetWidth: w, offsetHeight: h } = container;
+
+      setAllDesigns((prev) => {
+        const pos = prev[side].positions[id] || { x: 0, y: 0 };
+        return {
+          ...prev,
+          [side]: {
+            ...prev[side],
+            positions: {
+              ...prev[side].positions,
+              [id]: {
+                x: pos.x + (delta.x / w) * 100,
+                y: pos.y + (delta.y / h) * 100,
+              },
             },
           },
-        },
-      }));
+        };
+      });
     },
     [side]
   );
 
-  // A view is "non-empty" if it has an uploaded image OR non-empty text
   const viewHasContent = (view) => {
     const d = allDesigns[view];
-    return !!(
-      d?.uploadedImage ||
-      (d?.customText && d.customText.trim() !== "")
-    );
+    return !!(d?.uploadedImage || (d?.customText && d.customText.trim() !== ""));
   };
 
-  // Upload any base64 image (rendered design or raw logo) to ImageKit
-  const uploadToImageKit = async (
-    base64DataUrl,
-    view,
-    isUploadedLogo = false
-  ) => {
-    if (!base64DataUrl || !base64DataUrl.startsWith("data:image")) {
-      throw new Error("Image data is missing or invalid.");
-    }
+  const uploadToImageKit = async (base64DataUrl, view, isUploadedLogo = false) => {
+    if (!base64DataUrl?.startsWith("data:image"))
+      throw new Error("Invalid image data");
 
-    const fileName = `${
-      isUploadedLogo ? "logo" : "tshirt"
-    }_${view}_${Date.now()}.png`;
+    const fileName = `${isUploadedLogo ? "logo" : "tshirt"}_${view}_${Date.now()}.png`;
     const authRes = await axios.get(
       "https://duco-backend.onrender.com/api/imagekit/auth"
     );
@@ -223,10 +203,8 @@ const TshirtDesigner = () => {
       "https://upload.imagekit.io/api/v1/files/upload",
       formData,
       {
-        onUploadProgress: (progressEvent) => {
-          const percent = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
+        onUploadProgress: (e) => {
+          const percent = Math.round((e.loaded * 100) / e.total);
           setUploadProgress((prev) => ({ ...prev, [view]: percent }));
         },
       }
@@ -235,7 +213,6 @@ const TshirtDesigner = () => {
     return res.data?.url;
   };
 
-  // Capture ONLY views with content and upload them
   const captureSelectedViews = async () => {
     setIsSaving(true);
     setUploadProgress({});
@@ -247,32 +224,11 @@ const TshirtDesigner = () => {
       const ref = designRefs[view]?.current;
       if (!ref) continue;
 
-      // Ensure visibility for capture
-      const original = {
-        opacity: ref.style.opacity,
-        pointerEvents: ref.style.pointerEvents,
-        position: ref.style.position,
-        zIndex: ref.style.zIndex,
-      };
-      ref.style.opacity = "1";
-      ref.style.pointerEvents = "auto";
-      ref.style.position = "relative";
-      ref.style.zIndex = "50";
-
       await new Promise((r) => setTimeout(r, 120));
       const dataUrl = await toPng(ref, { cacheBust: true, pixelRatio: 2 });
-
-      // Restore original styles
-      ref.style.opacity = original.opacity;
-      ref.style.pointerEvents = original.pointerEvents;
-      ref.style.position = original.position;
-      ref.style.zIndex = original.zIndex;
-
       if (!dataUrl?.startsWith("data:image")) continue;
 
       const url = await uploadToImageKit(dataUrl, view);
-
-      // Optional: upload the raw logo for this view as a separate asset
       const logoBase64 = allDesigns[view]?.uploadedImage || null;
       const logoImageUrl = logoBase64
         ? await uploadToImageKit(logoBase64, view, true)
@@ -285,14 +241,10 @@ const TshirtDesigner = () => {
     return result;
   };
 
-  // Save ONLY populated views; embed positions + if_text inside each design item
   const saveSelectedViews = async () => {
     try {
       const designArrayRaw = await captureSelectedViews();
-      if (designArrayRaw.length === 0) {
-        console.warn("No views have content to save.");
-        return;
-      }
+      if (designArrayRaw.length === 0) return;
 
       const designArrayWithDetails = designArrayRaw.map((item) => {
         const d = allDesigns[item.view];
@@ -319,13 +271,13 @@ const TshirtDesigner = () => {
 
       const result = await createDesign(payload);
       if (result) navigate(-1);
-      else console.log("Failed to save design.");
     } catch (err) {
       console.error("Failed to save designs:", err);
       setIsSaving(false);
     }
   };
 
+  // ======================== RENDER DESIGN AREA ========================
   const renderDesignArea = (view) => {
     const design = allDesigns[view];
     const isActive = view === side;
@@ -388,6 +340,7 @@ const TshirtDesigner = () => {
     );
   };
 
+  // ======================== JSX ========================
   return (
     <>
       {isSaving && (
@@ -398,7 +351,7 @@ const TshirtDesigner = () => {
         </div>
       )}
 
-      {/* Mobile header with menu button */}
+      {/* Mobile Header */}
       {isMobile && (
         <div className="lg:hidden flex items-center justify-between p-4 bg-white shadow-md">
           <h1 className="text-xl font-bold">T-Shirt Designer</h1>
@@ -414,19 +367,17 @@ const TshirtDesigner = () => {
       <div className="flex flex-col lg:flex-row p-0 lg:p-4 relative">
         {/* Sidebar */}
         <aside
-          className={`
-          w-full lg:w-80 bg-white rounded-2xl shadow-xl p-6 border border-gray-300
-          lg:static fixed top-0 left-0 h-full z-40 overflow-y-auto transition-transform duration-300
-          ${
-            isMobile
-              ? sidebarOpen
-                ? "translate-x-0"
-                : "-translate-x-full"
-              : ""
-          }
-        `}
+          className={`w-full lg:w-80 bg-white rounded-2xl shadow-xl p-6 border border-gray-300
+            lg:static fixed top-0 left-0 h-full z-40 overflow-y-auto transition-transform duration-300
+            ${
+              isMobile
+                ? sidebarOpen
+                  ? "translate-x-0"
+                  : "-translate-x-full"
+                : ""
+            }`}
         >
-          {/* Close button for mobile */}
+          {/* Close for mobile */}
           {isMobile && (
             <div className="flex justify-end mb-4 lg:hidden">
               <button
@@ -467,7 +418,7 @@ const TshirtDesigner = () => {
               </label>
             </div>
 
-            {currentDesign.uploadedImage && (
+            {allDesigns[side].uploadedImage && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-800 mb-2">
                   Logo Size
@@ -476,14 +427,14 @@ const TshirtDesigner = () => {
                   type="range"
                   min="50"
                   max="300"
-                  value={currentDesign.imageSize}
+                  value={allDesigns[side].imageSize}
                   onChange={(e) =>
                     updateCurrentDesign("imageSize", Number(e.target.value))
                   }
                   className="w-full"
                 />
                 <span className="text-xs text-gray-600">
-                  {currentDesign.imageSize}px
+                  {allDesigns[side].imageSize}px
                 </span>
               </div>
             )}
@@ -494,7 +445,7 @@ const TshirtDesigner = () => {
               </h3>
               <input
                 type="text"
-                value={currentDesign.customText}
+                value={allDesigns[side].customText}
                 onChange={(e) =>
                   updateCurrentDesign("customText", e.target.value)
                 }
@@ -510,7 +461,7 @@ const TshirtDesigner = () => {
                 </h3>
                 <input
                   type="number"
-                  value={currentDesign.textSize}
+                  value={allDesigns[side].textSize}
                   onChange={(e) =>
                     updateCurrentDesign("textSize", Number(e.target.value))
                   }
@@ -524,7 +475,7 @@ const TshirtDesigner = () => {
                 </h3>
                 <input
                   type="color"
-                  value={currentDesign.textColor}
+                  value={allDesigns[side].textColor}
                   onChange={(e) =>
                     updateCurrentDesign("textColor", e.target.value)
                   }
@@ -539,7 +490,7 @@ const TshirtDesigner = () => {
               </h3>
               <select
                 onChange={(e) => updateCurrentDesign("font", e.target.value)}
-                value={currentDesign.font}
+                value={allDesigns[side].font}
                 className="w-full px-3 py-2 border border-gray-400 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-700"
               >
                 <option value="font-sans">Sans - Modern</option>
@@ -550,7 +501,7 @@ const TshirtDesigner = () => {
 
             <div className="space-y-4">
               <div className="flex flex-wrap justify-center gap-2 mb-4">
-                {["front", "back", "left", "right"].map((view) => (
+                {views.map((view) => (
                   <button
                     key={view}
                     onClick={() => {
@@ -567,21 +518,10 @@ const TshirtDesigner = () => {
                   </button>
                 ))}
               </div>
-
-              <div className="flex justify-center">
-                {sideimage.length > 0 && (
-                  <img
-                    src={sideimage[getViewIndex(side)]}
-                    alt={`${side} view`}
-                    className="w-48 h-auto object-contain transition-all duration-300"
-                  />
-                )}
-              </div>
             </div>
           </div>
         </aside>
 
-        {/* Overlay for mobile when sidebar is open */}
         {isMobile && sidebarOpen && (
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
@@ -589,18 +529,22 @@ const TshirtDesigner = () => {
           />
         )}
 
-        <main className="flex-1 flex items-center justify-center mt-4 lg:mt-0 lg:top-[-150px] relative p-4">
+        <main className="flex-1 flex items-center justify-center mt-4 lg:mt-0 relative p-4">
           <DndContext onDragEnd={handleDragEnd} sensors={sensors}>
-            <div className="relative w-full max-w-2xl h-96 sm:h-[30rem] md:h-[38rem] rounded-3xl overflow-hidden mx-auto mt-50">
+            <div className="relative w-full max-w-2xl h-96 sm:h-[30rem] md:h-[38rem] rounded-3xl overflow-hidden mx-auto">
               {views.map((view) => renderDesignArea(view))}
             </div>
           </DndContext>
 
           <button
             onClick={saveSelectedViews}
-            className="fixed bottom-6 right-6 lg:absolute lg:bottom-[100px] lg:right-7 py-3 px-6 flex items-center justify-center bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg z-10"
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-sm
+              py-3 px-6 flex items-center justify-center
+              bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg z-10
+              md:w-auto md:bottom-6 md:right-6 md:left-auto md:translate-x-0
+              lg:absolute lg:bottom-[100px] lg:right-7"
           >
-            Submit <MdNavigateNext size={20} />
+            Submit <MdNavigateNext size={20} className="ml-2" />
           </button>
         </main>
       </div>
