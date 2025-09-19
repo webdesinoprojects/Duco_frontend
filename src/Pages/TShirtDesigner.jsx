@@ -387,7 +387,7 @@ const TshirtDesigner = () => {
         <>
           {/* Active Panel */}
           {activeTab !== "none" && (
-            <div className="fixed bottom-14 left-0 w-full bg-white border-t border-gray-300 shadow-lg z-40">
+            <div className="fixed bottom-30 left-0 w-full bg-white border-t border-gray-300 shadow-lg z-40">
               <div className="p-4 space-y-4 max-h-[40vh] overflow-y-auto">
                 {activeTab === "upload" && (
                   <>
