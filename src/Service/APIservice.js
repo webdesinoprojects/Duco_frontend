@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'https://duco-backend.onrender.com/'; // Set if you have a different baseURL
+const API_BASE = 'https://duco-backend.onrender.com/';
 
 export const fetchAllPrices = async () => {
   const response = await axios.get(`${API_BASE}money/get_money`);
@@ -11,8 +11,6 @@ export const createOrUpdatePrice = async (data) => {
   const response = await axios.post(`${API_BASE}money/create_location_price_increase`, data);
   return response.data;
 };
-
-// src/Service/designAPI.js
 
 export const fetchPreviousDesigns = async (userId) => {
   try {
@@ -25,11 +23,7 @@ export const fetchPreviousDesigns = async (userId) => {
   }
 };
 
-
-
-
-
-export const fetchPreviousDesignswithpreoduts = async (userId,productId) => {
+export const fetchPreviousDesignswithpreoduts = async (userId, productId) => {
   try {
     const res = await fetch(`https://duco-backend.onrender.com/api/designs/user/${userId}/${productId}`);
     const data = await res.json();
@@ -40,9 +34,6 @@ export const fetchPreviousDesignswithpreoduts = async (userId,productId) => {
   }
 };
 
-
-
-
 export const createDesign = async (payload) => {
   try {
     const res = await axios.post('https://duco-backend.onrender.com/api/designs', payload, {
@@ -50,7 +41,6 @@ export const createDesign = async (payload) => {
         'Content-Type': 'application/json',
       },
     });
-
     return res.data;
   } catch (err) {
     console.error('Design creation failed:', err.response?.data || err.message);
@@ -59,72 +49,64 @@ export const createDesign = async (payload) => {
 };
 
 export const getCategories = async () => {
-    try {
-      const res = await axios.get("https://duco-backend.onrender.com/category/getall");
-      return res.data.category || [];
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-      return null
-    }
-  };
+  try {
+    const res = await axios.get("https://duco-backend.onrender.com/category/getall");
+    return res.data.category || [];
+  } catch (err) {
+    console.error("Error fetching categories:", err);
+    return null;
+  }
+};
 
-
-  export const getSubcategoriesByCategoryId = async (categoryId) => {
+export const getSubcategoriesByCategoryId = async (categoryId) => {
   try {
     const res = await axios.get(`https://duco-backend.onrender.com/subcategory/subcat/${categoryId}`);
-    return res.data.data || []; // Assuming controller sends { data: [...] }
+    return res.data.data || [];
   } catch (err) {
     console.error("Error fetching subcategories:", err);
     return null;
   }
 };
 
-  export const getproducts = async () => {
+export const getproducts = async () => {
   try {
     const res = await axios.get(`https://duco-backend.onrender.com/products/get/`);
-    return res.data || []; // Assuming controller sends { data: [...] }
+    return res.data || [];
   } catch (err) {
     console.error("Error fetching subcategories:", err);
     return null;
   }
 };
-
 
 export const getproductssingle = async (id) => {
   try {
     const res = await axios.get(`https://duco-backend.onrender.com/products/get/${id}`);
-    return res.data || []; // Assuming controller sends { data: [...] }
+    return res.data || [];
   } catch (err) {
     console.error("Error fetching subcategories:", err);
     return null;
   }
 };
-
-
-
-
 
 export const getproductcategory = async (idsub) => {
   try {
     const res = await axios.get(`https://duco-backend.onrender.com/products/getsub/${idsub}`);
-    return res.data || []; // Assuming controller sends { data: [...] }
+    return res.data || [];
   } catch (err) {
     console.error("Error fetching subcategories:", err);
     return null;
   }
 };
 
-
-export const Updateproductcate = async (id,updates) => {
+export const Updateproductcate = async (id, updates) => {
   try {
-    const res = await axios.put(`https://duco-backend.onrender.com/products/update/:${id}`,updates);
-    return res.data || []; // Assuming controller sends { data: [...] }
+    const res = await axios.put(`https://duco-backend.onrender.com/products/update/:${id}`, updates);
+    return res.data || [];
   } catch (err) {
     console.error("Error fetching subcategories:", err);
     return null;
   }
 };
-
 
 export const fetchOrdersByUser = async (userId) => {
   try {
@@ -136,10 +118,7 @@ export const fetchOrdersByUser = async (userId) => {
     return [];
   }
 };
-// /Service/APIservi
 
-
-// CREATE: POST /api/banners  -> { success, banner }
 export async function createBanner(link) {
   try {
     const { data } = await axios.post(`${API_BASE}api/banners`, { link });
@@ -150,7 +129,6 @@ export async function createBanner(link) {
   }
 }
 
-// READ: GET /api/banners  -> { success, banners:[{_id, link}] }
 export async function listBanners() {
   try {
     const { data } = await axios.get(`${API_BASE}api/banners`);
@@ -161,7 +139,6 @@ export async function listBanners() {
   }
 }
 
-// UPDATE: PUT /api/banners/:id  -> { success, banner:{_id, link} }
 export async function updateBanner(id, link) {
   try {
     const { data } = await axios.put(`${API_BASE}api/banners/${id}`, { link });
@@ -174,19 +151,22 @@ export async function updateBanner(id, link) {
 
 export async function adminLogin(userid, password) {
   const { data } = await axios.post(`${API_BASE}api/admin/check`, { userid, password });
-  return !!data?.ok;          // boolean true/false
+  return !!data?.ok;
+}
+
+// New function for forgot/reset password API
+export async function adminForgotPassword(userid, newPassword, confirmPassword) {
+  const { data } = await axios.post(
+    `${API_BASE}api/employeesacc/reset-password`,
+    { employeeid: userid, newPassword, confirmPassword }
+  );
+  return data;
 }
 
 export const getChargePlanRates = async (qty) => {
   const res = await axios.get(`${API_BASE}api/chargeplan/rates?qty=${qty}`);
   return res.data;
 };
-
-
-
-
-
-
 
 async function handle(res) {
   const data = await res.json().catch(() => ({}));
@@ -197,13 +177,11 @@ async function handle(res) {
   return data;
 }
 
-/** GET all bank details */
 export async function getBankDetails(signal) {
   const res = await fetch(`${API_BASE}api/bankdetails`, { signal });
   return handle(res);
 }
 
-/** Convenience: return FIRST record with isactive === true (or null) */
 export async function getActiveBankDetails(signal) {
   const data = await getBankDetails(signal);
   const list = Array.isArray(data) ? data : data?.items || data?.data || [];
@@ -212,19 +190,16 @@ export async function getActiveBankDetails(signal) {
 
 export async function getInvoiceByOrder(orderId) {
   if (!orderId) throw new Error("orderId is required");
- 
-    const res = await axios.get(`${API_BASE}api/invoice/${orderId}`);
-    return res.data; // { invoice, totals }
- 
+  const res = await axios.get(`${API_BASE}api/invoice/${orderId}`);
+  return res.data;
 }
+
 export async function getWallet(userId) {
   if (!userId) throw new Error("Missing userId for getWallet");
   const url = `${API_BASE}api/wallet/${userId}`;
   const res = await axios.get(url);
-  return res.data; // { _id, user, balance?, transactions: [...] }
+  return res.data;
 }
-
-
 
 export const deleteProduct = async (productId) => {
   if (!productId) throw new Error("productId is required");
@@ -232,7 +207,6 @@ export const deleteProduct = async (productId) => {
     const res = await axios.delete(`${API_BASE}/products/deleted/${productId}`);
     return res.data;
   } catch (err) {
-    // Normalize error
     const msg =
       err?.response?.data?.message ||
       err?.message ||
