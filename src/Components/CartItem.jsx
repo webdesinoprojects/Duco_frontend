@@ -14,14 +14,24 @@ const CartItem = ({ item, removeFromCart, updateQuantity }) => {
     return Math.ceil(finalPrice); // ✅ round up to integer
   }
 
+  // Sum price for all sizes
+  const totalPrice = Object.entries(item.quantity || {}).reduce(
+    (acc, [size, qty]) => acc + qty * item.price,
+    0
+  );
+
   return (
     <div className="border-b border-gray-800 pb-6 mb-6">
       <div className="flex flex-col sm:flex-row gap-6 sm:items-start">
         {/* Product Image */}
         <div className="w-full sm:w-32 h-32 bg-gray-200 flex items-center justify-center rounded-lg overflow-hidden shadow-md">
           <img
-            src={item.image_url[0]?.url[0]}
-            alt={item.type}
+            src={
+              item.image_url?.[0]?.url?.[0] ||
+              item.previewImages?.front ||
+              "/fallback.png" // ✅ safe fallback
+            }
+            alt={item.products_name || item.name || "Custom T-Shirt"}
             className="w-full h-full object-contain"
           />
         </div>
@@ -30,23 +40,33 @@ const CartItem = ({ item, removeFromCart, updateQuantity }) => {
         <div className="flex-1 flex flex-col gap-1 text-white">
           <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
             <h2 className="text-lg sm:text-xl font-semibold">
-              {item.products_name}
+              {item.products_name || item.name || "Custom T-Shirt"}
             </h2>
             <PriceDisplay
-              price={Math.ceil(item.price)} // ✅ ensure integer
+              price={Math.ceil(totalPrice)}
               className="text-base sm:text-lg font-bold text-[#FDC305]"
             />
           </div>
 
           <div className="text-sm text-gray-300">{item.description}</div>
 
+          {/* Quantity Handling */}
           <div className="flex flex-wrap gap-1">
-            {Object.entries(item.quantity).map(([size, count]) =>
-              count > 0 ? (
-                <span key={size} className="px-1 py-0.5 text-sm rounded border">
-                  {size} × {count}
-                </span>
-              ) : null
+            {item.quantity && typeof item.quantity === "object" ? (
+              Object.entries(item.quantity).map(([size, count]) =>
+                count > 0 ? (
+                  <span
+                    key={size}
+                    className="px-1 py-0.5 text-sm rounded border"
+                  >
+                    {size} × {count}
+                  </span>
+                ) : null
+              )
+            ) : (
+              <span className="px-1 py-0.5 text-sm rounded border">
+                Qty: {item.qunatity || 1}
+              </span>
             )}
           </div>
 
@@ -65,9 +85,6 @@ const CartItem = ({ item, removeFromCart, updateQuantity }) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 mt-2">
-            {/* Quantity Controls - if you want to add */}
-            {/* <QuantityControlss /> */}
-
             {/* Design Preview */}
             <button
               onClick={() => setPreviewImage(item.design)}
@@ -107,10 +124,7 @@ const CartItem = ({ item, removeFromCart, updateQuantity }) => {
             {Array.isArray(previewImage) && previewImage.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {previewImage.map((img, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col justify-center"
-                  >
+                  <div key={index} className="flex flex-col justify-center">
                     <img
                       src={img.url}
                       alt={`Design Preview ${index + 1}`}

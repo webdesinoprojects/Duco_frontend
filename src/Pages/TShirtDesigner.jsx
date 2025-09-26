@@ -1,5 +1,12 @@
 // FULL MULTI-VIEW DESIGNER — Responsive for mobile
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useContext,
+} from "react";
+import { CartContext } from "../ContextAPI/CartContext";
 import { toPng } from "html-to-image";
 import {
   DndContext,
@@ -41,7 +48,11 @@ const DraggableItem = ({ id, children, position = { x: 0, y: 0 } }) => {
 
 // ======================== MAIN COMPONENT ========================
 const TshirtDesigner = () => {
+  const { addToCart } = useContext(CartContext);
+
   const [isSaving, setIsSaving] = useState(false);
+  const [productDetails, setProductDetails] = useState(null);
+  const [additionalFiles, setAdditionalFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState({});
   const [side, setSide] = useState("front");
   const [sideimage, setSideimage] = useState([]);
@@ -113,6 +124,10 @@ const TshirtDesigner = () => {
     const getdata = async () => {
       try {
         const data = await getproductssingle(proid);
+        console.log("PRODUCT DETAILS:", data); // ✅ log full response
+
+        setProductDetails(data); // ✅ save full product
+
         const match = data?.image_url?.find(
           (e) => e.colorcode === colorWithHash
         );
@@ -136,6 +151,15 @@ const TshirtDesigner = () => {
       }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAdditionalFilesUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    setAdditionalFiles((prevFiles) => [
+      ...prevFiles,
+      ...files.map((file) => ({ name: file.name, file })),
+    ]);
   };
 
   const updateCurrentDesign = (property, value) => {
@@ -174,9 +198,74 @@ const TshirtDesigner = () => {
     [side]
   );
 
+  // ======================== HELPER: WAIT FOR IMAGES ========================
+  const waitForImages = (container) => {
+    const images = container.querySelectorAll("img");
+    return Promise.all(
+      Array.from(images).map(
+        (img) =>
+          new Promise((resolve) => {
+            if (img.complete) resolve();
+            else img.onload = img.onerror = resolve;
+          })
+      )
+    );
+  };
+
+  // ======================== SAVE LOGIC ========================
+
   const saveSelectedViews = async () => {
-    // keep your existing API + upload logic here
-    alert("Submit clicked! Saving design...");
+    try {
+      setIsSaving(true);
+      const images = {};
+
+      for (let view of views) {
+        const node = designRefs[view]?.current;
+        if (!node) continue;
+
+        await waitForImages(node);
+
+        const dataUrl = await toPng(node, {
+          cacheBust: true,
+          pixelRatio: 2,
+          backgroundColor: "#fff",
+        });
+
+        images[view] = dataUrl;
+      }
+
+      await createDesign({
+        productId: proid,
+        color: colorWithHash,
+        designs: allDesigns,
+        previewImages: images,
+      });
+
+      const customProduct = {
+        id: `custom-tshirt-${Date.now()}`,
+        productId: productDetails?._id || proid, // ✅ keep original product id
+        name: productDetails?.title || "Custom T-Shirt",
+        design: allDesigns,
+        previewImages: images,
+        color: colorWithHash,
+        colortext: productDetails?.colortext || "Custom",
+        gender: productDetails?.gender || "Unisex",
+        price: Math.round(productDetails?.pricing?.[0]?.price_per || 499),
+        quantity: allDesigns?.quantity || { M: 1 }, // use actual selected quantity per size
+      };
+
+      console.log("Adding custom product:", customProduct);
+
+      addToCart(customProduct);
+
+      alert("Design saved and added to cart!");
+      navigate("/cart");
+    } catch (error) {
+      console.error("Error saving design:", error);
+      alert("Failed to save design. Try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // ======================== CONTROLS ========================
@@ -195,6 +284,29 @@ const TshirtDesigner = () => {
             className="hidden"
           />
         </label>
+      </div>
+
+      {/* Additional Files */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+          Upload Additional Files
+        </h3>
+        <label className="flex flex-col items-center px-4 py-3 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-100 cursor-pointer transition-all">
+          <span className="text-xs text-gray-600">Click to select files</span>
+          <input
+            type="file"
+            multiple
+            onChange={handleAdditionalFilesUpload}
+            className="hidden"
+          />
+        </label>
+        <ul className="mt-2 max-h-24 overflow-auto text-xs text-gray-600">
+          {additionalFiles.map((fileObj, i) => (
+            <li key={i} className="truncate" title={fileObj.name}>
+              {fileObj.name}
+            </li>
+          ))}
+        </ul>
       </div>
 
       {allDesigns[side].uploadedImage && (

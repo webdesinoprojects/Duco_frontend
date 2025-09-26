@@ -44,7 +44,7 @@ const ProductPage = () => {
   const [defaultColorGroup, setDefaultColorGroup] = useState(null);
   const [designs, setDesigns] = useState([]);
   const [loadingDesigns, setLoadingDesigns] = useState(false);
-  const { addtocart } = useContext(CartContext);
+  const { addToCart } = useContext(CartContext);
   const { id } = useParams();
   const SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
   const initialQty = SIZES.reduce((acc, k) => ({ ...acc, [k]: 0 }), {});
@@ -321,7 +321,7 @@ const ProductPage = () => {
               <button
                 onClick={() => {
                   // 👈 always store integer price
-                  addtocart({
+                  addToCart({
                     id,
                     design: [],
                     color: selectedColorCode,
@@ -364,7 +364,7 @@ const ProductPage = () => {
         selectedDesign={selectedDesign}
         onClose={() => setSelectedDesign(null)}
         id={id}
-        addtocart={addtocart}
+        addtocart={addToCart}
         size={qty}
         color={selectedColorCode}
         colortext={colortext}

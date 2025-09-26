@@ -2,7 +2,8 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import CartItem from "../Components/CartItem.jsx";
 import AddressManager from "../Components/AddressManager";
 import Loading from "../Components/Loading";
-import { CartContext } from "../ContextAPI/CartContext";``
+import { CartContext } from "../ContextAPI/CartContext";
+``;
 import { getproducts, getChargePlanRates } from "../Service/APIservice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -14,7 +15,8 @@ const safeNum = (v, fallback = 0) => {
 };
 
 const Cart = () => {
-  const { cart, clear, removeFromCart, updateQuantity } = useContext(CartContext);
+  const { cart, clear, removeFromCart, updateQuantity } =
+    useContext(CartContext);
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -58,14 +60,19 @@ const Cart = () => {
 
   // enrich cart items with product data
   const actualData = useMemo(() => {
-    if (!Array.isArray(cart) || !Array.isArray(products)) return [];
-    return cart
-      .map((ci) => {
-        const p = products.find((x) => x._id === ci.id);
-        if (!p) return null;
-        return { ...p, ...ci }; // merge product fields + cart fields
-      })
-      .filter(Boolean);
+    if (!Array.isArray(cart)) return [];
+
+    return cart.map((ci) => {
+      const p = Array.isArray(products)
+        ? products.find((x) => x._id === ci.id)
+        : null;
+
+      // If product exists in backend → merge
+      if (p) return { ...p, ...ci };
+
+      // If custom product (not in backend) → just return cart item as-is
+      return ci;
+    });
   }, [cart, products]);
 
   // total quantity across all items (sum of nested quantity object values)
@@ -101,27 +108,24 @@ const Cart = () => {
           setPfPerUnit(safeNum(res.data?.perUnit?.pakageingandforwarding, 0));
           setPrintPerUnit(safeNum(res.data?.perUnit?.printingcost, 0));
           setGstPercent(
-    safeNum(
-         res?.data?.gstPercent ??
-         res?.data?.percent?.gst ??
-         res?.data?.perUnit?.gst,
-         0
-       )
-     );
-          
+            safeNum(
+              res?.data?.gstPercent ??
+                res?.data?.percent?.gst ??
+                res?.data?.perUnit?.gst,
+              0
+            )
+          );
         } else {
           // If backend uses different shape, fall back to zeros
           setPfPerUnit(0);
           setPrintPerUnit(0);
-                  setGstPercent(0);
-       
+          setGstPercent(0);
         }
       } catch (e) {
         console.error(e);
         toast.error("Failed to load charges. Please refresh.");
         setPfPerUnit(0);
         setPrintPerUnit(0);
-
       } finally {
         setLoadingRates(false);
       }
@@ -138,20 +142,26 @@ const Cart = () => {
   }, [totalQuantity]);
 
   // totals for charges (per-unit * totalQuantity)
-  const pfTotal = useMemo(() => pfPerUnit , [pfPerUnit, totalQuantity]);
-  const printTotal = useMemo(() => printPerUnit , [printPerUnit, totalQuantity]);
+  const pfTotal = useMemo(() => pfPerUnit, [pfPerUnit, totalQuantity]);
+  const printTotal = useMemo(() => printPerUnit, [printPerUnit, totalQuantity]);
   const gstTotal = useMemo(
-   () => (safeNum(subtotal, 0) * safeNum(gstPercent, 0)) / 100,
-   [subtotal, gstPercent]
- );
+    () => (safeNum(subtotal, 0) * safeNum(gstPercent, 0)) / 100,
+    [subtotal, gstPercent]
+  );
 
   // grand total in base units
   const grandTotal = useMemo(() => {
-    return safeNum(subtotal, 0) + safeNum(pfTotal, 0) + safeNum(printTotal, 0) + safeNum(gstTotal, 0);
+    return (
+      safeNum(subtotal, 0) +
+      safeNum(pfTotal, 0) +
+      safeNum(printTotal, 0) +
+      safeNum(gstTotal, 0)
+    );
   }, [subtotal, pfTotal, printTotal, gstTotal]);
 
   // conversion helper for display
-  const convert = (amount) => (safeNum(amount, 0) * safeNum(toConvert, 0)).toFixed(2);
+  const convert = (amount) =>
+    (safeNum(amount, 0) * safeNum(toConvert, 0)).toFixed(2);
 
   const orderPayload = useMemo(
     () => ({
@@ -159,14 +169,13 @@ const Cart = () => {
       totalPay: safeNum(grandTotal, 0) * safeNum(toConvert, 0),
       address,
       user,
-      pf:pfPerUnit,
-      gst:gstPercent,
-      printing:printPerUnit
+      pf: pfPerUnit,
+      gst: gstPercent,
+      printing: printPerUnit,
     }),
     [actualData, grandTotal, toConvert, address, user]
   );
-  console.log(orderPayload)
-  
+  console.log(orderPayload);
 
   const handleCheckout = () => {
     if (!user) {
@@ -201,10 +210,21 @@ const Cart = () => {
                 key={`${item._id}-${item.size}-${item.color}-${i}`}
                 item={item}
                 removeFromCart={() =>
-                  removeFromCart(item.id, item.quantity, item.color, item.design)
+                  removeFromCart(
+                    item.id,
+                    item.quantity,
+                    item.color,
+                    item.design
+                  )
                 }
                 updateQuantity={(newQty) =>
-                  updateQuantity(item.id, item.quantity, item.color, item.design, newQty)
+                  updateQuantity(
+                    item.id,
+                    item.quantity,
+                    item.color,
+                    item.design,
+                    newQty
+                  )
                 }
               />
             ))
@@ -221,7 +241,9 @@ const Cart = () => {
             className="lg:w-96 h-fit rounded-sm p-6"
             style={{ backgroundColor: "#112430" }}
           >
-            <h2 className="text-2xl font-bold mb-6 text-white">ORDER SUMMARY</h2>
+            <h2 className="text-2xl font-bold mb-6 text-white">
+              ORDER SUMMARY
+            </h2>
 
             <div className="space-y-4 mb-8">
               <div className="flex justify-between">
@@ -238,13 +260,15 @@ const Cart = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">GST Charge</span>
-              <span className="text-white">{convert(gstTotal)}</span>
+                <span className="text-white">{convert(gstTotal)}</span>
               </div>
             </div>
 
             <div className="flex justify-between border-t border-gray-600 pt-4 mb-6">
               <span className="text-white font-bold">Total</span>
-              <span className="text-white font-bold">{convert(grandTotal)}</span>
+              <span className="text-white font-bold">
+                {convert(grandTotal)}
+              </span>
             </div>
 
             <button
