@@ -8,10 +8,11 @@ const BoxOfProdcuts = ({ price, title, id, image }) => {
   const { addtocart } = useContext(CartContext);
   const { toConvert, priceIncrease } = usePriceContext();
 
+  // Calculate final price and round down
   function calculatePrice(currency, ac, high) {
     const actualPrice = currency * ac;
     const final = actualPrice + (actualPrice * (high / 100));
-    return Math.ceil(final); // 🔥 force whole number
+    return Math.floor(final); // 🔥 round down to nearest integer
   }
 
   const finalPrice = toConvert && price && priceIncrease 
@@ -55,19 +56,19 @@ const BoxOfProdcuts = ({ price, title, id, image }) => {
 
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold text-gray-900">
-            ₹{finalPrice ?? "..."}
+            ₹{finalPrice ?? "..." }
           </span>
 
           <button
             onClick={(e) => {
               e.preventDefault(); // prevent Link default
-              e.stopPropagation();
+              e.stopPropagation(); // stop bubbling to Link
               addtocart({
                 id: id,
                 design: [],
                 color: "white",
                 quantity: 1,
-                price: finalPrice ?? Math.ceil(price), // 🔥 ensure integer
+                price: finalPrice ?? Math.floor(price), // 🔥 floor instead of ceil
               });
             }}
             className="px-4 py-1.5 bg-[#E5C870] text-black text-sm font-medium rounded-full hover:bg-gray-800 transition"

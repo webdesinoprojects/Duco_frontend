@@ -85,9 +85,10 @@ const App = () => {
         >
           <Route index path="" element={<Home />} />
           <Route index path="/home" element={<Home />} />
-          <Route path="/men" element={<Prodcuts />} />
-          <Route path="/women" element={<Prodcuts />} />
-          <Route path="/kid" element={<Prodcuts />} />
+         <Route path="/men" element={<Prodcuts gender="Male" />} />
+         <Route path="/women" element={<Prodcuts gender="Female" />} />
+         <Route path="/kid" element={<Prodcuts gender="Kids" />} />
+         <Route path="/corporate" element={<Prodcuts />} />
           <Route path="/corporate" element={<Prodcuts />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/cart" element={<Cart />} />
