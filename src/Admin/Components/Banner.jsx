@@ -8,15 +8,13 @@ export default function Banner() {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const [editing, setEditing] = useState({});   // { [id]: tempValue }
-const location = useLocation();
+  const location = useLocation();
 
-  // full pathname
-  console.log("Current path:", location.pathname);
   useEffect(() => {
     (async () => {
       const res = await listBanners();
       if (res.success) setItems(res.data || []);
-      else setError(res.error);
+      else setError(res.error || "Failed to load banners");
     })();
   }, []);
 
@@ -24,44 +22,36 @@ const location = useLocation();
     setError("");
     const val = text.trim();
     if (!val) return setError("Please paste an image URL.");
-    try {
-      new URL(val);
-    } catch {
-      return setError("Invalid URL.");
-    }
+    try { new URL(val); } catch { return setError("Invalid URL."); }
     const res = await createBanner(val);
-    if (res.success) {
-      setItems((prev) => [res.data, ...prev]); // prepend new
-      setText("");
-    } else setError(res.error);
+    if (res.success) { setItems((prev) => [res.data, ...prev]); setText(""); }
+    else setError(res.error || "Failed to add banner");
   };
 
-  const startEdit = (id, current) => {
-    setEditing((e) => ({ ...e, [id]: current }));
-  };
-
-  const cancelEdit = (id) => {
-    setEditing((e) => {
-      const copy = { ...e };
-      delete copy[id];
-      return copy;
-    });
-  };
+  const startEdit = (id, current) => setEditing((e) => ({ ...e, [id]: current }));
+  const cancelEdit = (id) => setEditing((e) => { const copy = { ...e }; delete copy[id]; return copy; });
 
   const saveEdit = async (id) => {
+    setError("");
     const newVal = (editing[id] || "").trim();
     if (!newVal) return setError("URL cannot be empty.");
-    try {
-      new URL(newVal);
-    } catch {
-      return setError("Invalid URL.");
-    }
+    try { new URL(newVal); } catch { return setError("Invalid URL."); }
     const res = await updateBanner(id, newVal);
-    if (res.success) {
-      setItems((prev) => prev.map((b) => (b._id === id ? res.data : b)));
-      cancelEdit(id);
-    } else setError(res.error);
+    if (res.success) { setItems((prev) => prev.map((b) => (b._id === id ? res.data : b))); cancelEdit(id); }
+    else setError(res.error || "Failed to update banner");
   };
+
+  // Build a proxy URL for CORS/redirect-unfriendly sources (e.g., source.unsplash.com)
+  function proxyUrlIfNeeded(url) {
+    try {
+      const u = new URL(url);
+      // images.weserv.nl expects host+path without scheme; keeps query
+      const hostless = `${u.hostname}${u.pathname}${u.search || ""}`;
+      return `https://images.weserv.nl/?url=${encodeURIComponent(hostless)}`;
+    } catch {
+      return url;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 py-10">
@@ -111,12 +101,21 @@ const location = useLocation();
                       src={displayLink}
                       alt={`banner-${_id}`}
                       className="h-full w-full object-cover"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
                       onError={(e) => {
-                        e.currentTarget.src =
-                          "data:image/svg+xml;utf8,\
-                           <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'>\
-                           <rect width='200' height='150' fill='%23e5e7eb'/>\
-                           <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%236b7280' font-size='14'>Preview failed</text></svg>";
+                        // one-shot retry via proxy; if that also fails, show placeholder
+                        const el = e.currentTarget;
+                        if (!el.dataset.fallbackTried) {
+                          el.dataset.fallbackTried = "1";
+                          el.src = proxyUrlIfNeeded(displayLink);
+                          return;
+                        }
+                        el.src =
+                          "data:image/svg+xml;utf8," +
+                          encodeURIComponent(
+                            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'><rect width='200' height='150' fill='#e5e7eb'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#6b7280' font-size='14'>Preview failed</text></svg>"
+                          );
                       }}
                     />
                     {!isEditing && (
@@ -137,9 +136,7 @@ const location = useLocation();
                         <input
                           className="w-full rounded-md border border-slate-300 px-2 py-1 text-xs"
                           value={editing[_id]}
-                          onChange={(e) =>
-                            setEditing((prev) => ({ ...prev, [_id]: e.target.value }))
-                          }
+                          onChange={(e) => setEditing((prev) => ({ ...prev, [_id]: e.target.value }))}
                           placeholder="https://new-url..."
                         />
                         <div className="flex gap-2">
@@ -167,7 +164,6 @@ const location = useLocation();
                           >
                             Edit
                           </button>
-                          {/* No delete per your requirement */}
                         </div>
                       </>
                     )}

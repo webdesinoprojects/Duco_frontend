@@ -1,4 +1,3 @@
-// src/pages/EmployeeLogin.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -23,7 +22,7 @@ const EmployeeLogin = () => {
       if (data.ok) {
         // save session
         localStorage.setItem("employeeAuth", JSON.stringify(form));
-        navigate(`/${data.url}`); // go to main dashboard
+        navigate(data.url); // go to main dashboard
       } else {
         alert("Invalid credentials");
       }
