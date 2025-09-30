@@ -52,6 +52,7 @@ import EmployeePrivateRoute from "./Admin/Components/EmployeePrivateRoute.jsx";
 import Invoice from "./Admin/Invoice.jsx";
 import InvoiceSet from "./Pages/InvoiceSet.jsx";
 import WalletPage from "./Pages/WalletPage.jsx";
+import OrderSuccess from "./Pages/OrderSuccess.jsx";
 
 const App = () => {
   return (
@@ -100,6 +101,8 @@ const App = () => {
           <Route path="/profile" element={<ProfilePanel />} />
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/order-processing" element={<OrderProcessing />} />
+          <Route path="/order-success/:orderId" element={<OrderSuccess />} />
+
           <Route
             path="/products/subcategory/:id/:catogory_name"
             element={<SaerchingPage />}

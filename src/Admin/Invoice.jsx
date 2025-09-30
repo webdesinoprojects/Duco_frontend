@@ -28,6 +28,7 @@ const initialShape = {
     pan: "",
     iec: "",
     gst: "",
+    state: "", // 👈 added company state
   },
   invoice: {
     placeOfSupply: "",
@@ -177,13 +178,26 @@ export default function Invoice() {
           <div className="md:col-span-2 space-y-6">
             <Card title="Company Details">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <TextField label="Company Name" value={data.company.name} onChange={(v) => onChange(["company", "name"], v)} />
+                <SelectField
+  label="Company State"
+  value={data.company.state}
+  onChange={(v) => onChange(["company", "state"], v)}
+  options={[
+    "Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh",
+    "Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland",
+    "Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal",
+    "Andaman and Nicobar Islands","Chandigarh","Dadra and Nagar Haveli and Daman and Diu","Delhi","Jammu and Kashmir",
+    "Ladakh","Lakshadweep","Puducherry"
+  ]}
+/>
+
                 <TextField label="Email" value={data.company.email} onChange={(v) => onChange(["company", "email"], v)} />
                 <TextField label="GSTIN" value={data.company.gstin} onChange={(v) => onChange(["company", "gstin"], v)} />
                 <TextField label="CIN" value={data.company.cin} onChange={(v) => onChange(["company", "cin"], v)} />
                 <TextField label="PAN" value={data.company.pan} onChange={(v) => onChange(["company", "pan"], v)} />
                 <TextField label="IEC" value={data.company.iec} onChange={(v) => onChange(["company", "iec"], v)} />
                 <TextField label="GST % / Note" value={data.company.gst} onChange={(v) => onChange(["company", "gst"], v)} />
+                <TextField label="Company State" value={data.company.state} onChange={(v) => onChange(["company", "state"], v)} /> {/* 👈 added field */}
                 <TextArea  label="Address" value={data.company.address} onChange={(v) => onChange(["company", "address"], v)} rows={3} />
               </div>
             </Card>
@@ -200,8 +214,6 @@ export default function Invoice() {
               <TermsEditor terms={data.terms} onChange={(terms) => onChange(["terms"], terms)} />
             </Card>
       
-            
-
             <Card title="Signature">
               <TextField label="For Company" value={data.forCompany} onChange={(v) => onChange(["forCompany"], v)} />
             </Card>
