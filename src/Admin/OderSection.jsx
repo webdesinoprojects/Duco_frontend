@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import OrderDetailsCard from "../Admin/Components/OrderDetailsCard"; // <-- make sure path is correct
 
+// ✅ Better status badge colors
 const statusClass = (s = "") => {
   switch (s) {
     case "Pending": return "bg-amber-500 text-white";
@@ -8,6 +9,8 @@ const statusClass = (s = "") => {
     case "Shipped": return "bg-purple-500 text-white";
     case "Delivered": return "bg-emerald-500 text-white";
     case "Cancelled": return "bg-rose-500 text-white";
+    case "Payment Verification Failed": return "bg-red-500 text-white";
+    case "Payment Verification Failed (50%)": return "bg-orange-500 text-white";
     default: return "bg-gray-400 text-white";
   }
 };
@@ -21,9 +24,18 @@ const OderSection = () => {
     try {
       const res = await fetch("https://duco-backend.onrender.com/api/order");
       const data = await res.json();
-      setOrders(Array.isArray(data) ? data : []);
+
+      // ✅ handle both formats {orders: [...]} or [...]
+      if (Array.isArray(data)) {
+        setOrders(data);
+      } else if (Array.isArray(data.orders)) {
+        setOrders(data.orders);
+      } else {
+        setOrders([]);
+      }
     } catch (err) {
-      console.error("Failed to fetch orders", err);
+      console.error("❌ Failed to fetch orders", err);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -45,6 +57,8 @@ const OderSection = () => {
         <div className="space-y-4">
           {orders.map((order) => {
             const first = order?.products?.[0] || {};
+            const email = order?.address?.email || order?.user?.email || "N/A";
+
             return (
               <div
                 key={order._id}
@@ -53,10 +67,16 @@ const OderSection = () => {
                 {/* Left: Basic info */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusClass(order.status)}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusClass(
+                        order.status
+                      )}`}
+                    >
                       {order.status}
                     </span>
-                    <span className="text-xs text-gray-500 truncate">#{order._id}</span>
+                    <span className="text-xs text-gray-500 truncate">
+                      #{order._id}
+                    </span>
                   </div>
 
                   <p className="font-semibold text-sm sm:text-base truncate">
@@ -78,6 +98,9 @@ const OderSection = () => {
                       ? `${order.address.fullName} • ${order.address.city || ""}`
                       : "No address"}
                   </p>
+
+                  {/* ✅ Show email as well */}
+                  <p className="text-xs text-gray-500">📧 {email}</p>
                 </div>
 
                 {/* Right: Price + Actions */}

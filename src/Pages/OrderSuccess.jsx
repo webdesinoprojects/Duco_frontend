@@ -6,7 +6,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import JsBarcode from "jsbarcode";
 
-// ✅ Invoice Component (same style as Cart)
+// ✅ Invoice Component
 const InvoiceDucoTailwind = ({ data }) => {
   const barcodeRef = useRef(null);
 
@@ -107,7 +107,8 @@ const InvoiceDucoTailwind = ({ data }) => {
         <p>P&F Charges: ₹{data.charges.pf}</p>
         <p>Printing Charges: ₹{data.charges.printing}</p>
         <p>
-          CGST {data.tax.cgstRate}% + SGST {data.tax.sgstRate}%
+          CGST {data.tax.cgstRate}% = ₹{data.tax.cgstAmount} <br />
+          SGST {data.tax.sgstRate}% = ₹{data.tax.sgstAmount}
         </p>
       </div>
 
@@ -142,12 +143,18 @@ export default function OrderSuccess() {
       try {
         const res = await getInvoiceByOrder(orderId);
         if (res?.invoice) {
-          // ✅ Format items with description
+          // ✅ Format invoice properly
+          const subtotal = res.invoice.subtotal || 0;
+          const pf = res.invoice.charges?.pf || 0;
+          const printing = res.invoice.charges?.printing || 0;
+          const gstRate = res.invoice.gst || 0;
+          const gstTotal = (subtotal * gstRate) / 100;
+
           const formattedInvoice = {
             ...res.invoice,
             items: res.invoice.items.map((item, idx) => {
               const sizes = Object.entries(item.quantity || {})
-                .filter(([size, qty]) => qty > 0)
+                .filter(([_, qty]) => qty > 0)
                 .map(([size, qty]) => `${size} × ${qty}`)
                 .join(", ");
               return {
@@ -163,6 +170,15 @@ export default function OrderSuccess() {
                 price: item.price,
               };
             }),
+            tax: {
+              cgstRate: gstRate / 2,
+              sgstRate: gstRate / 2,
+              cgstAmount: gstTotal / 2,
+              sgstAmount: gstTotal / 2,
+              gstTotal,
+            },
+            subtotal,
+            total: subtotal + pf + printing + gstTotal,
           };
           setInvoiceData(formattedInvoice);
           clearCart();
@@ -211,7 +227,9 @@ export default function OrderSuccess() {
           ✅ Thank you for buying from DucoArt.com!
         </h1>
         <p className="mt-2 text-gray-700">
-          Your order <span className="font-semibold">#{orderId}</span> has been placed successfully.
+          Your order <span className="font-semibold">#{orderId}</span> has been
+          placed successfully. A confirmation email & invoice have been sent to
+          your registered email address.
         </p>
         <button
           onClick={downloadPDF}

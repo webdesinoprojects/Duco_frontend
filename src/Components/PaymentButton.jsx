@@ -1,12 +1,13 @@
+// 📁 src/Components/PaymentButton.jsx
 import React from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const PaymentButton = ({ orderData, paymentMethod }) => {
+const PaymentButton = ({ orderData }) => {
   const navigate = useNavigate();
   const API_BASE = "https://duco-backend.onrender.com/";
 
-  // Load Razorpay checkout script
+  // ✅ Load Razorpay SDK
   const loadScript = (src) => {
     return new Promise((resolve) => {
       const script = document.createElement("script");
@@ -28,18 +29,18 @@ const PaymentButton = ({ orderData, paymentMethod }) => {
     }
 
     try {
-      // 1. Create Razorpay order
+      // ✅ 1. Create Razorpay Order from backend
       const { data } = await axios.post(`${API_BASE}api/payment/create-order`, {
-        amount: orderData.totalPay,
-        half: paymentMethod == "50%" ? true : false,
+        amount: orderData.totalPay, // totalPay in INR (backend will convert to paise)
+        half: false, // only full payment here
       });
 
       const { orderId, amount } = data;
 
-      // 2. Configure Razorpay options
+      // ✅ 2. Configure Razorpay options
       const options = {
-        key: "rzp_live_RIY5FnqUMjz8c1", // 🔑 Replace with your actual Razorpay public key
-        amount: amount,
+        key: "rzp_live_RIY5FnqUMjz8c1", // 🔑 your Razorpay LIVE key
+        amount: amount, // in paise
         currency: "INR",
         name: "Your Brand Name",
         description: "T-shirt Order",
@@ -48,36 +49,52 @@ const PaymentButton = ({ orderData, paymentMethod }) => {
           const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
             response;
 
-          const verifyRes = await axios.post(`${API_BASE}api/payment/verify`, {
-            razorpay_order_id,
-            razorpay_payment_id,
-            razorpay_signature,
-          });
-
-          if (verifyRes.data.success) {
-            // 3. Redirect to Order Processing Page
-            navigate("/order-processing", {
-              state: {
-                paymentId: razorpay_payment_id,
-                orderData: orderData,
-                paymentmode: paymentMethod,
-              },
+          try {
+            // ✅ 3. Verify payment with backend
+            const verifyRes = await axios.post(`${API_BASE}api/payment/verify`, {
+              razorpay_order_id,
+              razorpay_payment_id,
+              razorpay_signature,
             });
-          } else {
-            alert("Payment verification failed.");
+
+            if (verifyRes.data.success) {
+              // ✅ 4. Redirect to order processing page
+              navigate("/order-processing", {
+                state: {
+                  paymentId: razorpay_payment_id,
+                  orderData: orderData,
+                  paymentmode: "online", // ✅ lowercase for backend
+                },
+              });
+            } else {
+              alert("Payment verification failed. Please try again.");
+            }
+          } catch (err) {
+            console.error("Verification Error:", err);
+            alert("Verification request failed.");
           }
         },
+        // ✅ Prefill with fallback (address if user email/phone missing)
         prefill: {
-          name: orderData?.shippingAddress?.name || "",
-          contact: orderData?.shippingAddress?.phone || "",
-          email: orderData?.shippingAddress?.email || "",
+          name:
+            orderData?.user?.name ||
+            orderData?.address?.fullName ||
+            "Guest User",
+          contact:
+            orderData?.user?.phone ||
+            orderData?.address?.mobileNumber ||
+            "",
+          email:
+            orderData?.user?.email ||
+            orderData?.address?.email ||
+            "",
         },
         theme: {
           color: "#E5C870",
         },
       };
 
-      // 4. Open Razorpay Checkout
+      // ✅ 4. Open Razorpay Checkout
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {

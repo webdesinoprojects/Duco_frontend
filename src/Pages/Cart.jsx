@@ -17,7 +17,7 @@ const safeNum = (v, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-// ✅ Inline safe Invoice Component
+// ✅ Invoice component
 const InvoiceDucoTailwind = ({ data }) => {
   const barcodeRef = useRef(null);
 
@@ -63,7 +63,9 @@ const InvoiceDucoTailwind = ({ data }) => {
 
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div>
-          <p>Invoice No: <b>{data.invoice.number}</b></p>
+          <p>
+            Invoice No: <b>{data.invoice.number}</b>
+          </p>
           <p>Date: {data.invoice.date}</p>
           <p>Place of Supply: {data.invoice.placeOfSupply}</p>
         </div>
@@ -115,12 +117,16 @@ const InvoiceDucoTailwind = ({ data }) => {
         <p>P&F Charges: ₹{data.charges.pf}</p>
         <p>Printing Charges: ₹{data.charges.printing}</p>
         <p>
-          CGST {data.tax.cgstRate}% + SGST {data.tax.sgstRate}%
+          CGST {data.tax.cgstRate}% = ₹{data.tax.cgstAmount} <br />
+          SGST {data.tax.sgstRate}% = ₹{data.tax.sgstAmount}
         </p>
       </div>
 
       <h2 style={{ textAlign: "right", marginTop: "10px" }}>
-        Total: ₹{data.total}
+        Subtotal: ₹{data.subtotal}
+      </h2>
+      <h2 style={{ textAlign: "right", marginTop: "5px" }}>
+        Grand Total: ₹{data.total}
       </h2>
 
       <hr style={{ margin: "15px 0" }} />
@@ -219,25 +225,27 @@ const Cart = () => {
     const fetchRates = async () => {
       try {
         setLoadingRates(true);
-        const res = await getChargePlanRates(totalQuantity);
+        // ✅ Pass subtotal to backend
+        const res = await getChargePlanRates(totalQuantity, subtotal);
         if (res?.success) {
           setPfPerUnit(safeNum(res.data?.perUnit?.pakageingandforwarding, 0));
           setPrintPerUnit(safeNum(res.data?.perUnit?.printingcost, 0));
-          setGstPercent(safeNum(res?.data?.gstPercent ?? res?.data?.percent?.gst, 0));
+          setGstPercent(safeNum(res?.data?.gstPercent, 0));
         }
       } finally {
         setLoadingRates(false);
       }
     };
     if (totalQuantity > 0) fetchRates();
-  }, [totalQuantity]);
+  }, [totalQuantity, subtotal]);
 
   const pfTotal = pfPerUnit;
   const printTotal = printPerUnit;
   const gstTotal = (safeNum(subtotal, 0) * safeNum(gstPercent, 0)) / 100;
   const grandTotal = subtotal + pfTotal + printTotal + gstTotal;
 
-  const convert = (amt) => (safeNum(amt, 0) * safeNum(toConvert, 1)).toFixed(2);
+  const convert = (amt) =>
+    (safeNum(amt, 0) * safeNum(toConvert, 1)).toFixed(2);
 
   const orderPayload = useMemo(
     () => ({
@@ -252,7 +260,7 @@ const Cart = () => {
     [actualData, grandTotal, toConvert, address, user]
   );
 
-  // ✅ Invoice data
+  // ✅ Invoice data with correct tax
   const invoiceData = {
     company: {
       name: "DUCO ART PRIVATE LIMITED",
@@ -290,9 +298,18 @@ const Cart = () => {
       };
     }),
     charges: { pf: pfTotal, printing: printTotal },
-    tax: { cgstRate: 2.5, sgstRate: 2.5 },
-    terms: ["Thank you for shopping with DucoArt!", "Goods once sold will not be taken back."],
+    tax: {
+      cgstRate: gstPercent / 2,
+      sgstRate: gstPercent / 2,
+      cgstAmount: gstTotal / 2,
+      sgstAmount: gstTotal / 2,
+    },
+    terms: [
+      "Thank you for shopping with DucoArt!",
+      "Goods once sold will not be taken back.",
+    ],
     forCompany: "DUCO ART PRIVATE LIMITED",
+    subtotal: subtotal,
     total: grandTotal,
   };
 
@@ -306,13 +323,16 @@ const Cart = () => {
 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+    const ratio = Math.min(
+      pageWidth / canvas.width,
+      pageHeight / canvas.height
+    );
     const imgWidth = canvas.width * ratio;
     const imgHeight = canvas.height * ratio;
     const marginX = (pageWidth - imgWidth) / 2;
 
     pdf.addImage(imgData, "PNG", marginX, 10, imgWidth, imgHeight);
-    pdf.save(`Invoice_Test.pdf`);
+    pdf.save("Invoice_Test.pdf");
   };
 
   if (loadingProducts || loadingRates) return <Loading />;
@@ -329,28 +349,56 @@ const Cart = () => {
                 key={`${item._id}-${i}`}
                 item={item}
                 removeFromCart={() =>
-                  removeFromCart(item.id, item.quantity, item.color, item.design)
+                  removeFromCart(
+                    item.id,
+                    item.quantity,
+                    item.color,
+                    item.design
+                  )
                 }
                 updateQuantity={(newQty) =>
-                  updateQuantity(item.id, item.quantity, item.color, item.design, newQty)
+                  updateQuantity(
+                    item.id,
+                    item.quantity,
+                    item.color,
+                    item.design,
+                    newQty
+                  )
                 }
               />
             ))
           ) : (
-            <div className="text-gray-400 text-center mt-16 text-xl">Your cart is empty.</div>
+            <div className="text-gray-400 text-center mt-16 text-xl">
+              Your cart is empty.
+            </div>
           )}
         </div>
 
         {/* Order Summary */}
         <div className="lg:w-96 flex flex-col">
-          <div className="lg:w-96 h-fit rounded-sm p-6" style={{ backgroundColor: "#112430" }}>
+          <div
+            className="lg:w-96 h-fit rounded-sm p-6"
+            style={{ backgroundColor: "#112430" }}
+          >
             <h2 className="text-2xl font-bold mb-6 text-white">ORDER SUMMARY</h2>
 
             <div className="space-y-4 mb-8">
-              <div className="flex justify-between"><span className="text-gray-300">Subtotal</span><span>{convert(subtotal)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-300">P&F Charges</span><span>{convert(pfTotal)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-300">Printing</span><span>{convert(printTotal)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-300">GST</span><span>{convert(gstTotal)}</span></div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Subtotal</span>
+                <span>{convert(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">P&F Charges</span>
+                <span>{convert(pfTotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Printing</span>
+                <span>{convert(printTotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">GST ({gstPercent}%)</span>
+                <span>{convert(gstTotal)}</span>
+              </div>
             </div>
 
             <div className="flex justify-between border-t border-gray-600 pt-4 mb-6">
@@ -360,7 +408,13 @@ const Cart = () => {
 
             <button
               className="w-full py-4 font-bold bg-yellow-400 text-black hover:bg-yellow-300 cursor-pointer"
-              onClick={() => navigate("/payment", { state: orderPayload })}
+              onClick={() => {
+                if (!address) {
+                  toast.error("⚠️ Please select a delivery address");
+                  return;
+                }
+                navigate("/payment", { state: orderPayload });
+              }}
             >
               CHECK OUT
             </button>

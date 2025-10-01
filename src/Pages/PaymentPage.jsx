@@ -8,17 +8,20 @@ const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [showPayNow, setShowPayNow] = useState(false);
   const [netbankingType, setNetbankingType] = useState("");
-  // const [bulk,SetBulkorder] = useState(false);
   const locations = useLocation();
 
-  const orderpayload = locations.state;
-
+  const orderpayload = locations.state || {};
   const navigate = useNavigate();
 
-  // console.log(orderpayload)
+  // ✅ Ensure email is present in address (backend requires it)
+  if (orderpayload?.address && !orderpayload.address.email) {
+    orderpayload.address.email =
+      orderpayload?.user?.email || "noemail@placeholder.com";
+  }
 
   const handlePaymentChange = (method) => {
     setPaymentMethod(method);
+    // ✅ show PayNow only for Razorpay payments
     setShowPayNow(method === "online" || method === "50%");
   };
 
@@ -27,25 +30,22 @@ const PaymentPage = () => {
       navigate("/order-processing", {
         state: {
           orderData: orderpayload,
-          paymentmode: "netbanking",
+          paymentmode: "netbanking", // ✅ backend expects lowercase
         },
       });
-
-      // TODO: Call API to place COD order here
       toast.success("Order Placed!");
     } else if (paymentMethod === "") {
       toast.error("Please select a payment method");
     }
   };
 
+  // ✅ detect bulk orders
   const isBulkOrder = useMemo(() => {
     const items = orderpayload?.items ?? [];
     return items.some((item) =>
       Object.values(item?.quantity ?? {}).some((qty) => Number(qty) >= 50)
     );
   }, [orderpayload]);
-
-  console.log(isBulkOrder);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4">
@@ -55,9 +55,7 @@ const PaymentPage = () => {
         </h1>
 
         <div className="space-y-4">
-          {/* Radio: COD */}
-
-          {/* Radio: Online */}
+          {/* ✅ Online payment (Razorpay full) */}
           <div>
             <label className="flex items-center text-lg text-[#0A0A0A]">
               <input
@@ -71,25 +69,10 @@ const PaymentPage = () => {
               Pay Online
             </label>
           </div>
-          {/* <div>
-            <label className="flex items-center text-lg text-[#0A0A0A]">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="cod"
-                checked={paymentMethod === 'cod'}
-                onChange={() => handlePaymentChange('cod')}
-                className="mr-2"
-              />
-              Pickup from Shop
-            </label>
-          </div> */}
 
-          {/* Replace your existing COD block with this */}
-
+          {/* ✅ Bulk orders → allow 50% and Netbanking */}
           {isBulkOrder && (
             <>
-              {" "}
               <div>
                 <label className="flex items-center text-lg text-[#0A0A0A]">
                   <input
@@ -100,9 +83,10 @@ const PaymentPage = () => {
                     onChange={() => handlePaymentChange("50%")}
                     className="mr-2"
                   />
-                  50% pay Online
+                  50% Pay Online
                 </label>
               </div>
+
               <div>
                 <label className="flex items-start gap-3 text-lg text-[#0A0A0A]">
                   <input
@@ -116,20 +100,17 @@ const PaymentPage = () => {
                   <div className="w-full">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <span className="font-semibold">Netbanking</span>
-
-                      {/* UPI / Account details selector */}
                       <select
                         value={netbankingType}
                         onChange={(e) => setNetbankingType(e.target.value)}
                         className="sm:ml-3 rounded-lg border border-gray-300 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5C870]"
-                        disabled={paymentMethod !== "netbanking"} // enable only when chosen
+                        disabled={paymentMethod !== "netbanking"}
                       >
                         <option value="upi">UPI</option>
                         <option value="bank">Account Details</option>
                       </select>
                     </div>
 
-                    {/* ✅ Show panel only when netbanking is selected */}
                     <NetbankingPanel
                       paymentMethod={paymentMethod}
                       netbankingType={netbankingType}
@@ -140,52 +121,28 @@ const PaymentPage = () => {
             </>
           )}
 
-          {!showPayNow &&
-            (paymentMethod === "netbanking" ? (
-              <button
-                onClick={() =>
-                  navigate("/order-processing", {
-                    state: {
-                      paymentId: "test_transtion", // make sure this exists
-                      orderData: orderpayload,
-                      paymentmode: "netbanking", // match backend check (case-sensitive)
-                    },
-                  })
-                }
-                className="w-full mt-6 py-2 px-4 bg-[#E5C870] text-black rounded-lg hover:bg-[#D4B752] font-semibold"
-              >
-                Continue
-              </button>
-            ) : (
-              <button
-                onClick={() =>
-                  navigate("/order-processing", {
-                    state: {
-                      paymentId: "test_transtion", // make sure this exists
-                      orderData: orderpayload,
-                      paymentmode: "50%", // match backend check (case-sensitive)
-                    },
-                  })
-                }
-                className="w-full mt-6 py-2 px-4 bg-[#E5C870] text-black rounded-lg hover:bg-[#D4B752] font-semibold"
-              >
-                Continue
-              </button>
-            ))}
-
-          {showPayNow && (
+          {/* ✅ For online → Razorpay PayNow button */}
+          {showPayNow && paymentMethod === "online" && (
             <div className="mt-6">
-              <PaymentButton
-                orderData={orderpayload}
-                paymentMethod={paymentMethod}
-              />
+              <PaymentButton orderData={orderpayload} />
             </div>
+          )}
+
+          {/* ✅ For 50% and Netbanking → Continue button (non-Razorpay flow) */}
+          {!showPayNow && paymentMethod === "netbanking" && (
+            <button
+              onClick={handleSubmit}
+              className="w-full mt-6 py-2 px-4 bg-[#E5C870] text-black rounded-lg hover:bg-[#D4B752] font-semibold"
+            >
+              Continue
+            </button>
           )}
         </div>
       </div>
     </div>
   );
 };
+
 function DetailRow({ label, value, canCopy }) {
   const copy = () => navigator.clipboard.writeText(value);
   return (
@@ -207,6 +164,7 @@ function DetailRow({ label, value, canCopy }) {
     </div>
   );
 }
+
 function CopyRow({ label, value }) {
   const copy = () => navigator.clipboard.writeText(value);
   return (

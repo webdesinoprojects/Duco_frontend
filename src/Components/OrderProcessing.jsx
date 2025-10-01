@@ -6,41 +6,74 @@ import { toast } from "react-toastify";
 const OrderProcessing = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { paymentId, orderData, paymentmode } = location.state || {};
+
+  // ✅ Safely extract data from location.state
+  const paymentId = location.state?.paymentId || null;
+  const orderData = location.state?.orderData || null;
+
+  // ✅ Normalize paymentmode (backend expects lowercase)
+  let paymentmode = location.state?.paymentmode || "online";
+  paymentmode = paymentmode.toLowerCase();
+
   const API_BASE = "https://duco-backend.onrender.com/";
 
   useEffect(() => {
     if (!paymentId || !orderData) {
-      navigate("/payment"); // if missing data → go back to payment page
+      toast.error("Missing payment details. Redirecting...");
+      navigate("/payment", { replace: true });
       return;
+    }
+
+    // ✅ Ensure address has email (backend requires it)
+    if (!orderData?.address?.email) {
+      orderData.address = {
+        ...orderData.address,
+        email: orderData?.user?.email || "noemail@placeholder.com",
+      };
     }
 
     const completeOrder = async () => {
       try {
-        const { data } = await axios.post(`${API_BASE}api/completedorder`, {
+        console.log("🔄 Sending order completion request:", {
+          paymentId,
+          paymentmode,
+          items: orderData?.items?.length || 0,
+          totalPay: orderData?.totalPay,
+        });
+
+        const response = await axios.post(`${API_BASE}api/completedorder`, {
           paymentId,
           orderData,
           paymentmode,
         });
 
-        if (data.success) {
-          const orderId = data.orderId || data._id || orderData?.id;
+        const data = response?.data;
+        console.log("✅ Order completion response:", data);
+
+        if (data?.success) {
+          const orderId =
+            data?.order?._id || data?.orderId || orderData?.id || "UNKNOWN";
           toast.success("✅ Order completed successfully!");
-          // redirect to invoice thank-you page
           navigate(`/order-success/${orderId}`, { replace: true });
         } else {
-          toast.error("❌ Order failed. Please try again.");
+          toast.error(data?.message || "❌ Order failed. Please try again.");
           navigate("/payment", { replace: true });
         }
-      } catch (e) {
-        console.error("Order processing error:", e);
-        toast.error("Something went wrong. Please try again.");
+      } catch (error) {
+        console.error("❌ Order processing error:", error);
+
+        const errMsg =
+          error.response?.data?.message ||
+          error.message ||
+          "Something went wrong. Please try again.";
+
+        toast.error(errMsg);
         navigate("/payment", { replace: true });
       }
     };
 
     completeOrder();
-  }, [navigate, orderData, paymentId, paymentmode]);
+  }, [navigate, paymentId, orderData, paymentmode]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] text-white text-xl font-semibold">

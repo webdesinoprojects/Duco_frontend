@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react"; // ✅ added useContext here
 
 export const CartContext = createContext();
 
@@ -16,7 +16,6 @@ export const CartProvider = ({ children }) => {
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     console.log("🛒 Cart updated:", cart); // ✅ log full cart every time it changes
-
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
@@ -89,7 +88,6 @@ export const CartProvider = ({ children }) => {
   const removeFromCart = (id, quantity, color = null, design = null) => {
     setCart((prevCart) =>
       prevCart.filter((item) => {
-        // If size/color/design are provided, match all fields
         if (quantity && color && design) {
           return !(
             item.id === id &&
@@ -97,8 +95,6 @@ export const CartProvider = ({ children }) => {
             item.design === design
           );
         }
-
-        // If only id is provided, remove all matching this id
         return item.id !== id;
       })
     );
@@ -120,7 +116,6 @@ export const CartProvider = ({ children }) => {
     );
   }
 
-  // at bottom of CartProvider.js
   return (
     <CartContext.Provider
       value={{
@@ -135,4 +130,6 @@ export const CartProvider = ({ children }) => {
     </CartContext.Provider>
   );
 };
+
+// ✅ custom hook (now works since useContext is imported)
 export const useCart = () => useContext(CartContext);
