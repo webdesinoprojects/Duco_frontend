@@ -69,14 +69,6 @@ const OrderDetailsCard = ({ orderId }) => {
     }
   };
 
-  const getVariantImage = (product) => {
-    if (!product?.image_url || !product?.color) return product?.image_url?.[0]?.url?.[0] || null;
-    const match = product.image_url.find(
-      (img) => img.colorcode?.toLowerCase() === product.color.toLowerCase()
-    );
-    return match?.url?.[0] || product.image_url?.[0]?.url?.[0] || null;
-  };
-
   useEffect(() => {
     (async () => {
       try {
@@ -142,7 +134,7 @@ const OrderDetailsCard = ({ orderId }) => {
         <div>
           <h3 className="text-lg font-semibold mb-2">Payment Information</h3>
           <div className="space-y-2">
-            <p>Total Amount: ₹{Number(order.price || 0).toFixed(2)}</p>
+            <p>Total Amount: ₹{Number(order.price || order.amount || 0).toFixed(2)}</p>
             <p className={`font-medium ${order.razorpayPaymentId ? "text-green-600" : "text-yellow-600"}`}>
               Payment Status: {order.razorpayPaymentId ? "Paid" : "Unpaid"}
             </p>
@@ -165,31 +157,28 @@ const OrderDetailsCard = ({ orderId }) => {
         <h3 className="text-lg font-semibold mb-4">Order Items</h3>
 
         <div className="space-y-5">
-          {order.products?.map((item, index) => {
-            const variantImg = getVariantImage(item);
+          {order.items?.map((item, index) => {
             const qtySum = totalQty(item.quantity);
             return (
               <div key={index} className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-start gap-4">
                   <div className="w-20 h-20 bg-white rounded border border-gray-200 overflow-hidden flex items-center justify-center">
-                    {variantImg ? (
-                      <img src={variantImg} alt={item.products_name} className="w-full h-full object-contain" />
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
                     ) : (
                       <div className="text-xs text-gray-400">No image</div>
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900">{item.products_name}</p>
+                    <p className="font-semibold text-gray-900">{item.name}</p>
 
-                    {/* THIS LINE WAS A <p> WITH DIVS INSIDE → now a <div> */}
                     <div className="text-sm text-gray-600 mt-1">
                       Color: <span className="font-medium">{item.colortext || item.color || "-"}</span>
                       &nbsp;|&nbsp; Qty:&nbsp;
-                      <span className="font-medium">{qtySum}</span>
+                      <span className="font-medium">{item.qty || qtySum}</span>
                     </div>
 
-                    {/* Chips are block-level (not inside <p>) */}
                     <div className="mt-2">
                       <QuantityChips quantity={item.quantity} />
                     </div>
@@ -197,51 +186,55 @@ const OrderDetailsCard = ({ orderId }) => {
                     <p className="text-gray-800 font-semibold mt-2">
                       ₹{Number(item.price || 0).toFixed(2)}
                     </p>
-
-                    {variantImg && (
-                      <a
-                        href={variantImg}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-blue-600 hover:underline mt-1 inline-block"
-                      >
-                        Open variant image
-                      </a>
-                    )}
                   </div>
                 </div>
 
-                {Array.isArray(item.design) && item.design.length > 0 && (
+                {/* ✅ Design Previews */}
+                {item.design && (
                   <div className="mt-3">
                     <p className="text-sm font-medium text-gray-800 mb-2">Design Preview</p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {item.design.map((d, i) => {
-                        const preview = d.uploadedImage || d.url;
-                        return (
-                          <div key={i} className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center">
+                      {["frontView", "backView", "leftView", "rightView"].map((view) =>
+                        item.design[view] ? (
+                          <div key={view} className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center">
                             <div className="w-full aspect-square overflow-hidden flex items-center justify-center">
-                              {preview ? (
-                                <img src={preview} alt={`${d.view} preview`} className="w-full h-full object-contain" />
-                              ) : (
-                                <div className="text-[11px] text-gray-400">No image</div>
-                              )}
+                              <img src={item.design[view]} alt={`${view} preview`} className="w-full h-full object-contain" />
                             </div>
                             <div className="mt-2 flex items-center gap-2">
-                              <span className="text-[11px] text-gray-600 capitalize">{d.view}</span>
-                              {preview && (
-                                <a href={preview} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">
-                                  Open
-                                </a>
-                              )}
-                              {d.url && d.uploadedImage && d.uploadedImage !== d.url && (
-                                <a href={d.url} target="_blank" rel="noreferrer" className="text-[11px] text-gray-700 hover:underline">
-                                  Base
-                                </a>
-                              )}
+                              <span className="text-[11px] text-gray-600 capitalize">{view.replace("View", "")}</span>
+                              <a href={item.design[view]} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">
+                                Open
+                              </a>
                             </div>
                           </div>
-                        );
-                      })}
+                        ) : null
+                      )}
+                    </div>
+
+                    {/* ✅ Uploaded Logo + Extra Files */}
+                    <div className="mt-3 space-y-1">
+                      {item.design.uploadedLogo && (
+                        <p className="text-xs">
+                          Logo File:{" "}
+                          <a href={item.design.uploadedLogo} target="_blank" className="text-blue-600 underline">
+                            View Logo
+                          </a>
+                        </p>
+                      )}
+                      {Array.isArray(item.design.extraFiles) && item.design.extraFiles.length > 0 && (
+                        <div className="text-xs">
+                          <p className="font-medium">Extra Files:</p>
+                          <ul className="list-disc pl-4">
+                            {item.design.extraFiles.map((f, i) => (
+                              <li key={i}>
+                                <a href={f.url || "#"} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                                  {f.name}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

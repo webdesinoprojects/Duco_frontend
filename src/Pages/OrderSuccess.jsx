@@ -6,7 +6,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import JsBarcode from "jsbarcode";
 
-// ✅ Invoice Component
+// ✅ INVOICE COMPONENT
 const InvoiceDucoTailwind = ({ data }) => {
   const barcodeRef = useRef(null);
 
@@ -21,13 +21,26 @@ const InvoiceDucoTailwind = ({ data }) => {
     }
   }, [data?.invoice?.number]);
 
+  const {
+    company,
+    invoice,
+    billTo,
+    items,
+    charges,
+    tax,
+    subtotal,
+    total,
+    terms,
+    forCompany,
+  } = data;
+
   return (
     <div
       style={{
         fontFamily: "Arial, sans-serif",
         color: "#000",
         backgroundColor: "#fff",
-        padding: "20px",
+        padding: "20px 30px",
         width: "800px",
         margin: "0 auto",
         border: "1px solid #ccc",
@@ -37,44 +50,46 @@ const InvoiceDucoTailwind = ({ data }) => {
         Tax Invoice
       </h1>
 
+      {/* COMPANY INFO */}
       <div style={{ textAlign: "center", marginBottom: "10px" }}>
         <h2 style={{ fontSize: "18px", marginBottom: "4px" }}>
-          {data.company.name}
+          {company.name}
         </h2>
-        <p>{data.company.address}</p>
-        <p>GSTIN: {data.company.gstin}</p>
-        <p>Email: {data.company.email}</p>
+        <p>{company.address}</p>
+        <p>GSTIN: {company.gstin}</p>
+        <p>Email: {company.email}</p>
       </div>
 
-      {/* ✅ Barcode */}
       <svg ref={barcodeRef}></svg>
-
       <hr style={{ margin: "15px 0" }} />
 
+      {/* INVOICE DETAILS */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div>
           <p>
-            Invoice No: <b>{data.invoice.number}</b>
+            Invoice No: <b>{invoice.number}</b>
           </p>
-          <p>Date: {data.invoice.date}</p>
-          <p>Place of Supply: {data.invoice.placeOfSupply}</p>
+          <p>Date: {invoice.date}</p>
+          <p>Place of Supply: {invoice.placeOfSupply}</p>
         </div>
         <div>
-          <p>Copy Type: {data.invoice.copyType}</p>
+          <p>Copy Type: {invoice.copyType}</p>
         </div>
       </div>
 
       <hr style={{ margin: "15px 0" }} />
 
+      {/* BILL TO */}
       <div>
         <h3>Bill To:</h3>
-        <p>{data.billTo.name}</p>
-        <p>{data.billTo.address}</p>
-        <p>{data.billTo.phone}</p>
+        <p>{billTo.name}</p>
+        <p>{billTo.address}</p>
+        {billTo.gstin && <p>GSTIN: {billTo.gstin}</p>}
       </div>
 
       <hr style={{ margin: "15px 0" }} />
 
+      {/* ITEMS TABLE */}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr
@@ -88,49 +103,110 @@ const InvoiceDucoTailwind = ({ data }) => {
             <th style={{ textAlign: "left", padding: "6px" }}>Qty</th>
             <th style={{ textAlign: "left", padding: "6px" }}>Unit</th>
             <th style={{ textAlign: "left", padding: "6px" }}>Price</th>
+            <th style={{ textAlign: "right", padding: "6px" }}>Amount</th>
           </tr>
         </thead>
         <tbody>
-          {data.items.map((it) => (
-            <tr key={it.sno} style={{ borderBottom: "1px solid #ddd" }}>
-              <td style={{ padding: "6px" }}>{it.sno}</td>
+          {items.map((it, i) => (
+            <tr key={i} style={{ borderBottom: "1px solid #ddd" }}>
+              <td style={{ padding: "6px" }}>{i + 1}</td>
               <td style={{ padding: "6px" }}>{it.description}</td>
               <td style={{ padding: "6px" }}>{it.qty}</td>
               <td style={{ padding: "6px" }}>{it.unit}</td>
               <td style={{ padding: "6px" }}>₹{it.price}</td>
+              <td style={{ textAlign: "right", padding: "6px" }}>
+                ₹{(it.qty * it.price).toFixed(2)}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div style={{ marginTop: "10px" }}>
-        <p>P&F Charges: ₹{data.charges.pf}</p>
-        <p>Printing Charges: ₹{data.charges.printing}</p>
-        <p>
-          CGST {data.tax.cgstRate}% = ₹{data.tax.cgstAmount} <br />
-          SGST {data.tax.sgstRate}% = ₹{data.tax.sgstAmount}
-        </p>
+      {/* SUMMARY BOX */}
+      <div
+        style={{
+          marginTop: "25px",
+          borderTop: "2px solid #000",
+          paddingTop: "10px",
+          width: "100%",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        <table
+          style={{
+            borderCollapse: "collapse",
+            width: "300px",
+            fontSize: "14px",
+          }}
+        >
+          <tbody>
+            <tr>
+              <td style={{ padding: "6px" }}>Subtotal:</td>
+              <td style={{ textAlign: "right", padding: "6px" }}>
+                ₹{subtotal.toFixed(2)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ padding: "6px" }}>P&F Charges:</td>
+              <td style={{ textAlign: "right", padding: "6px" }}>
+                ₹{charges.pf.toFixed(2)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ padding: "6px" }}>Printing Charges:</td>
+              <td style={{ textAlign: "right", padding: "6px" }}>
+                ₹{charges.printing.toFixed(2)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ padding: "6px" }}>
+                CGST ({tax.cgstRate}%)
+              </td>
+              <td style={{ textAlign: "right", padding: "6px" }}>
+                ₹{tax.cgstAmount.toFixed(2)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ padding: "6px" }}>
+                SGST ({tax.sgstRate}%)
+              </td>
+              <td style={{ textAlign: "right", padding: "6px" }}>
+                ₹{tax.sgstAmount.toFixed(2)}
+              </td>
+            </tr>
+            <tr
+              style={{
+                borderTop: "2px solid #000",
+                fontWeight: "bold",
+                fontSize: "15px",
+              }}
+            >
+              <td style={{ padding: "6px" }}>Grand Total:</td>
+              <td style={{ textAlign: "right", padding: "6px" }}>
+                ₹{total.toFixed(2)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <h2 style={{ textAlign: "right", marginTop: "10px" }}>
-        Total: ₹{data.total}
-      </h2>
-
-      <hr style={{ margin: "15px 0" }} />
+      <hr style={{ margin: "20px 0" }} />
 
       <ul>
-        {data.terms.map((t, i) => (
+        {terms.map((t, i) => (
           <li key={i}>{t}</li>
         ))}
       </ul>
 
       <p style={{ marginTop: "30px", fontWeight: "bold", textAlign: "right" }}>
-        For {data.forCompany}
+        For {forCompany}
       </p>
     </div>
   );
 };
 
+// ✅ MAIN ORDER SUCCESS COMPONENT
 export default function OrderSuccess() {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -142,47 +218,40 @@ export default function OrderSuccess() {
     async function fetchInvoice() {
       try {
         const res = await getInvoiceByOrder(orderId);
-        if (res?.invoice) {
-          // ✅ Format invoice properly
-          const subtotal = res.invoice.subtotal || 0;
-          const pf = res.invoice.charges?.pf || 0;
-          const printing = res.invoice.charges?.printing || 0;
-          const gstRate = res.invoice.gst || 0;
-          const gstTotal = (subtotal * gstRate) / 100;
+        const inv = res?.invoice;
+        if (!inv) throw new Error("No invoice found");
 
-          const formattedInvoice = {
-            ...res.invoice,
-            items: res.invoice.items.map((item, idx) => {
-              const sizes = Object.entries(item.quantity || {})
-                .filter(([_, qty]) => qty > 0)
-                .map(([size, qty]) => `${size} × ${qty}`)
-                .join(", ");
-              return {
-                sno: idx + 1,
-                description: `${item.name || "Product"}${
-                  sizes ? ` (Sizes: ${sizes})` : ""
-                }${item.color ? `, Color: ${item.color}` : ""}`,
-                qty: Object.values(item.quantity || {}).reduce(
-                  (a, b) => a + Number(b || 0),
-                  0
-                ),
-                unit: "Pcs.",
-                price: item.price,
-              };
-            }),
-            tax: {
-              cgstRate: gstRate / 2,
-              sgstRate: gstRate / 2,
-              cgstAmount: gstTotal / 2,
-              sgstAmount: gstTotal / 2,
-              gstTotal,
-            },
-            subtotal,
-            total: subtotal + pf + printing + gstTotal,
-          };
-          setInvoiceData(formattedInvoice);
-          clearCart();
-        }
+        // ✅ Calculate subtotal dynamically
+        const subtotal = inv.items.reduce(
+          (sum, item) => sum + Number(item.qty || 0) * Number(item.price || 0),
+          0
+        );
+
+        const pf = inv.charges?.pf || 0;
+        const printing = inv.charges?.printing || 0;
+
+        // ✅ Split IGST (5%) into CGST + SGST (2.5% each)
+       // ✅ Correct GST split
+       const gstRate = inv.tax?.igstRate || 5;
+       const gstTotal = (subtotal * gstRate) / 100;
+
+       const cgstRate = gstRate / 2;
+       const sgstRate = gstRate / 2;
+
+       const cgstAmount = gstTotal / 2;
+       const sgstAmount = gstTotal / 2;
+
+       const total = subtotal + pf + printing + gstTotal;
+
+        const formatted = {
+          ...inv,
+          tax: { cgstRate, sgstRate, cgstAmount, sgstAmount },
+          subtotal,
+          total,
+        };
+
+        setInvoiceData(formatted);
+        clearCart();
       } catch (err) {
         console.error("Error fetching invoice:", err);
         navigate("/");
@@ -191,6 +260,7 @@ export default function OrderSuccess() {
     fetchInvoice();
   }, [orderId, clearCart, navigate]);
 
+  // ✅ PDF DOWNLOAD
   const downloadPDF = async () => {
     const input = invoiceRef.current;
     if (!input) return;
@@ -210,6 +280,7 @@ export default function OrderSuccess() {
     pdf.save(`Invoice_${orderId}.pdf`);
   };
 
+  // ✅ Loading state
   if (!invoiceData) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -220,6 +291,7 @@ export default function OrderSuccess() {
     );
   }
 
+  // ✅ Render Invoice
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="mx-auto max-w-4xl text-center mb-10">
@@ -239,8 +311,10 @@ export default function OrderSuccess() {
         </button>
       </div>
 
-      {/* Invoice section */}
-      <div ref={invoiceRef} className="bg-white shadow rounded-lg p-4">
+      <div
+        ref={invoiceRef}
+        className="bg-white shadow-lg rounded-lg p-4 overflow-hidden"
+      >
         <InvoiceDucoTailwind data={invoiceData} />
       </div>
     </div>

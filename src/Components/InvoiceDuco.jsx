@@ -3,7 +3,7 @@
 //   import InvoiceDucoTailwind from "./InvoiceDucoTailwind";
 //   <InvoiceDucoTailwind data={invoiceData} editable />
 
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 
 // ---------- helpers ----------
 const r2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
@@ -108,12 +108,10 @@ export default function InvoiceDucoTailwind({ data, editable = false }) {
     const taxable = r2(sub + pf + printing);
 
     // --- Determine tax type ---
-    const companyState = d.company?.state || "";
-const supplyState = d.invoice?.placeOfSupply || "";
-const isSameState =
-  companyState &&
-  supplyState &&
-  supplyState.toLowerCase().includes(companyState.toLowerCase());
+    const normalize = (s) => (s || "").trim().toLowerCase();
+    const companyState = normalize(d.company?.state);
+    const supplyState = normalize(d.invoice?.placeOfSupply);
+    const isSameState = companyState && supplyState && companyState === supplyState;
 
     let cgstRate = 0,
       sgstRate = 0,
