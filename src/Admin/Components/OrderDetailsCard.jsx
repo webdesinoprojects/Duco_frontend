@@ -80,6 +80,7 @@ const OrderDetailsCard = ({ orderId }) => {
           `https://duco-backend.onrender.com/api/order/${orderId}`
         );
         const data = await res.json();
+        console.log("🧾 Order fetched:", data);
         setOrder(data);
       } catch (err) {
         console.error("Failed to fetch order", err);
@@ -169,9 +170,10 @@ const OrderDetailsCard = ({ orderId }) => {
         <h3 className="text-lg font-semibold mb-4">Order Items</h3>
 
         <div className="space-y-5">
-          {order.items?.map((item, index) => {
+          {(order.items || order.products)?.map((item, index) => {
             const qtySum = totalQty(item.quantity);
-            const design = item.design || {};
+            const design =
+              item.design || item.design_data || item?.product?.design || {};
 
             return (
               <div key={index} className="bg-gray-50 rounded-lg p-4">
@@ -190,7 +192,10 @@ const OrderDetailsCard = ({ orderId }) => {
 
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900">
-                      {item.name || "Unnamed Product"}
+                      {item.name ||
+                        item.products_name ||
+                        item.product?.products_name ||
+                        "Unnamed Product"}
                     </p>
 
                     <div className="text-sm text-gray-600 mt-1">
@@ -214,7 +219,7 @@ const OrderDetailsCard = ({ orderId }) => {
                   </div>
                 </div>
 
-                {/* ✅ Design Previews */}
+                {/* ✅ Design Previews — Base64 + URL support */}
                 {(design.front?.uploadedImage ||
                   design.back?.uploadedImage ||
                   design.left?.uploadedImage ||
@@ -233,7 +238,13 @@ const OrderDetailsCard = ({ orderId }) => {
                             >
                               <div className="w-full aspect-square overflow-hidden flex items-center justify-center">
                                 <img
-                                  src={design[view].uploadedImage}
+                                  src={
+                                    design[view].uploadedImage.startsWith(
+                                      "data:image"
+                                    )
+                                      ? design[view].uploadedImage
+                                      : `${design[view].uploadedImage}`
+                                  }
                                   alt={`${view} preview`}
                                   className="w-full h-full object-contain"
                                 />
