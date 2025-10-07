@@ -155,9 +155,7 @@ const OrderDetailsCard = ({ orderId }) => {
             </p>
             <p
               className={`font-medium ${
-                order.razorpayPaymentId
-                  ? "text-green-600"
-                  : "text-yellow-600"
+                order.razorpayPaymentId ? "text-green-600" : "text-yellow-600"
               }`}
             >
               Payment Status: {order.razorpayPaymentId ? "Paid" : "Unpaid"}
@@ -225,6 +223,7 @@ const OrderDetailsCard = ({ orderId }) => {
                     <p className="text-sm font-medium text-gray-800 mb-2">
                       Design Preview
                     </p>
+
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {["frontView", "backView", "leftView", "rightView"].map(
                         (view) =>
@@ -235,9 +234,16 @@ const OrderDetailsCard = ({ orderId }) => {
                             >
                               <div className="w-full aspect-square overflow-hidden flex items-center justify-center">
                                 <img
-                                  src={design[view]}
+                                  src={
+                                    design[view].startsWith("data:image")
+                                      ? design[view]
+                                      : `${design[view]}`
+                                  }
                                   alt={`${view} preview`}
                                   className="w-full h-full object-contain"
+                                  onError={(e) =>
+                                    (e.target.style.display = "none")
+                                  }
                                 />
                               </div>
                               <div className="mt-2 flex items-center gap-2">
