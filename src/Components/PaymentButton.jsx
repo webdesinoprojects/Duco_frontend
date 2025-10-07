@@ -2,6 +2,7 @@
 import React from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import LZString from "lz-string"; // ✅ added for compression
 
 const PaymentButton = ({ orderData }) => {
   const navigate = useNavigate();
@@ -58,11 +59,17 @@ const PaymentButton = ({ orderData }) => {
             });
 
             if (verifyRes.data.success) {
-              // ✅ 4. Redirect to order processing page
+              // ✅ 4. Compress orderData before sending
+              const compressedOrder = LZString.compressToBase64(
+                JSON.stringify(orderData)
+              );
+
+              // ✅ 5. Redirect to order-processing with compressed data
               navigate("/order-processing", {
                 state: {
                   paymentId: razorpay_payment_id,
-                  orderData: orderData,
+                  orderData: compressedOrder, // compressed payload
+                  compressed: true, // flag for backend
                   paymentmode: "online", // ✅ lowercase for backend
                 },
               });
@@ -94,7 +101,7 @@ const PaymentButton = ({ orderData }) => {
         },
       };
 
-      // ✅ 4. Open Razorpay Checkout
+      // ✅ 6. Open Razorpay Checkout
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {

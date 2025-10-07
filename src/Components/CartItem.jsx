@@ -50,22 +50,28 @@ const CartItem = ({ item, removeFromCart, updateQuantity }) => {
 
           <div className="text-sm text-gray-300">{item.description}</div>
 
-          {/* Quantity Handling */}
-          <div className="flex flex-wrap gap-1">
+          {/* ✅ Quantity Handling (multi-size display) */}
+          <div className="flex flex-wrap gap-2 mt-2">
             {item.quantity && typeof item.quantity === "object" ? (
-              Object.entries(item.quantity).map(([size, count]) =>
-                count > 0 ? (
-                  <span
-                    key={size}
-                    className="px-1 py-0.5 text-sm rounded border"
-                  >
-                    {size} × {count}
-                  </span>
-                ) : null
+              Object.entries(item.quantity).filter(([_, count]) => count > 0).length > 0 ? (
+                Object.entries(item.quantity).map(([size, count]) =>
+                  count > 0 ? (
+                    <span
+                      key={size}
+                      className="px-2 py-1 text-xs rounded border bg-gray-800 text-white"
+                    >
+                      {size} × {count}
+                    </span>
+                  ) : null
+                )
+              ) : (
+                <span className="px-2 py-1 text-xs rounded border">
+                  Qty: 1
+                </span>
               )
             ) : (
-              <span className="px-1 py-0.5 text-sm rounded border">
-                Qty: {item.qunatity || 1}
+              <span className="px-2 py-1 text-xs rounded border">
+                Qty: 1
               </span>
             )}
           </div>

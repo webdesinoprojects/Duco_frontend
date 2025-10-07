@@ -20,7 +20,7 @@ import { MdNavigateNext } from "react-icons/md";
 import menstshirt from "../assets/men_s_white_polo_shirt_mockup-removebg-preview.png";
 import axios from "axios";
 import { createDesign, getproductssingle } from "../Service/APIservice";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom"; // ✅ added useLocation
 import { FaUpload, FaFont, FaRegKeyboard, FaTimes } from "react-icons/fa";
 
 // ======================== DRAGGABLE ITEM ========================
@@ -49,7 +49,6 @@ const DraggableItem = ({ id, children, position = { x: 0, y: 0 } }) => {
 // ======================== MAIN COMPONENT ========================
 const TshirtDesigner = () => {
   const { addToCart } = useContext(CartContext);
-
   const [isSaving, setIsSaving] = useState(false);
   const [productDetails, setProductDetails] = useState(null);
   const [additionalFiles, setAdditionalFiles] = useState([]);
@@ -57,8 +56,9 @@ const TshirtDesigner = () => {
   const [side, setSide] = useState("front");
   const [sideimage, setSideimage] = useState([]);
   const [activeTab, setActiveTab] = useState("none");
-
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 1024 : false
+  );
 
   const views = ["front", "back", "left", "right"];
 
@@ -68,6 +68,17 @@ const TshirtDesigner = () => {
       activationConstraint: { delay: 250, tolerance: 5 },
     })
   );
+
+  // ✅ get passed size quantities from ProductPage
+  const location = useLocation();
+ const passedQuantity = location.state?.quantity || {
+  S: 0,
+  M: 1,
+  L: 0,
+  XL: 0,
+  "2XL": 0,
+  "3XL": 0,
+};
 
   const defaultSideState = (view) => {
     let defaultTextPos = { x: 50, y: 100 };
@@ -106,7 +117,11 @@ const TshirtDesigner = () => {
 
   const { proid, color } = useParams();
   const navigate = useNavigate();
-  const colorWithHash = color ? (color.startsWith("#") ? color : `#${color}`) : "";
+  const colorWithHash = color
+    ? color.startsWith("#")
+      ? color
+      : `#${color}`
+    : "";
 
   const getViewIndex = (s) =>
     ({ front: 0, back: 1, left: 2, right: 3 }[s] ?? 0);
@@ -213,7 +228,6 @@ const TshirtDesigner = () => {
   };
 
   // ======================== SAVE LOGIC ========================
-
   const saveSelectedViews = async () => {
     try {
       setIsSaving(true);
@@ -241,20 +255,31 @@ const TshirtDesigner = () => {
         previewImages: images,
       });
 
-      const customProduct = {
-        id: `custom-tshirt-${Date.now()}`,
-        productId: productDetails?._id || proid, // ✅ keep original product id
-        name: productDetails?.title || "Custom T-Shirt",
-        design: allDesigns,
-        previewImages: images,
-        color: colorWithHash,
-        colortext: productDetails?.colortext || "Custom",
-        gender: productDetails?.gender || "Unisex",
-        price: Math.round(productDetails?.pricing?.[0]?.price_per || 499),
-        quantity: allDesigns?.quantity || { M: 1 }, // use actual selected quantity per size
-      };
+      // ✅ Clean size object if needed
+     // ✅ clean up size object so only nonzero sizes remain
+const cleanedQuantities = Object.fromEntries(
+  Object.entries(passedQuantity || {}).map(([k, v]) => [k, Number(v) || 0])
+);
+const finalQuantities = Object.fromEntries(
+  Object.entries(cleanedQuantities).filter(([_, v]) => v > 0)
+);
 
-      console.log("Adding custom product:", customProduct);
+const customProduct = {
+  id: `custom-tshirt-${Date.now()}`,
+  productId: productDetails?._id || proid,
+  name: productDetails?.products_name || "Custom T-Shirt",
+  design: allDesigns,
+  previewImages: images,
+  color: colorWithHash,
+  colortext: productDetails?.colortext || "Custom",
+  gender: productDetails?.gender || "Unisex",
+  price: Math.round(productDetails?.pricing?.[0]?.price_per || 499),
+  quantity: finalQuantities || { M: 1 }, // ✅ use actual passed quantities
+};
+
+
+
+      console.log("🧾 Adding custom product to cart:", customProduct);
 
       addToCart(customProduct);
 
@@ -271,6 +296,7 @@ const TshirtDesigner = () => {
   // ======================== CONTROLS ========================
   const renderControls = () => (
     <div className="space-y-6">
+      {/* Upload Logo */}
       <div>
         <h3 className="text-sm font-semibold text-gray-800 mb-2">
           Upload Logo
@@ -311,7 +337,9 @@ const TshirtDesigner = () => {
 
       {allDesigns[side].uploadedImage && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-800 mb-2">Logo Size</h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">
+            Logo Size
+          </h3>
           <input
             type="range"
             min="50"
@@ -326,7 +354,9 @@ const TshirtDesigner = () => {
       )}
 
       <div>
-        <h3 className="text-sm font-semibold text-gray-800 mb-2">Custom Text</h3>
+        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+          Custom Text
+        </h3>
         <input
           type="text"
           value={allDesigns[side].customText}
@@ -338,7 +368,9 @@ const TshirtDesigner = () => {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-800 mb-2">Text Size</h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">
+            Text Size
+          </h3>
           <input
             type="number"
             value={allDesigns[side].textSize}
@@ -349,18 +381,24 @@ const TshirtDesigner = () => {
           />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-gray-800 mb-2">Text Color</h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">
+            Text Color
+          </h3>
           <input
             type="color"
             value={allDesigns[side].textColor}
-            onChange={(e) => updateCurrentDesign("textColor", e.target.value)}
+            onChange={(e) =>
+              updateCurrentDesign("textColor", e.target.value)
+            }
             className="w-10 h-10 rounded-full cursor-pointer"
           />
         </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-gray-800 mb-2">Font Style</h3>
+        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+          Font Style
+        </h3>
         <select
           onChange={(e) => updateCurrentDesign("font", e.target.value)}
           value={allDesigns[side].font}
@@ -493,7 +531,9 @@ const TshirtDesigner = () => {
                       Upload Logo
                     </h3>
                     <label className="flex flex-col items-center px-4 py-3 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-100 cursor-pointer transition-all">
-                      <span className="text-xs text-gray-600">Click to upload</span>
+                      <span className="text-xs text-gray-600">
+                        Click to upload
+                      </span>
                       <input
                         type="file"
                         accept="image/*"
@@ -503,7 +543,9 @@ const TshirtDesigner = () => {
                     </label>
                     {allDesigns[side].uploadedImage && (
                       <>
-                        <h3 className="text-sm font-semibold text-gray-800 mb-2">Logo Size</h3>
+                        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                          Logo Size
+                        </h3>
                         <input
                           type="range"
                           min="50"
@@ -524,9 +566,13 @@ const TshirtDesigner = () => {
 
                 {activeTab === "additional" && (
                   <>
-                    <h3 className="text-sm font-semibold text-gray-800 mb-2">Upload Additional Files</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                      Upload Additional Files
+                    </h3>
                     <label className="flex flex-col items-center px-4 py-3 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-100 cursor-pointer transition-all">
-                      <span className="text-xs text-gray-600">Click to select files</span>
+                      <span className="text-xs text-gray-600">
+                        Click to select files
+                      </span>
                       <input
                         type="file"
                         multiple
@@ -546,7 +592,9 @@ const TshirtDesigner = () => {
 
                 {activeTab === "text" && (
                   <>
-                    <h3 className="text-sm font-semibold text-gray-800 mb-2">Custom Text</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                      Custom Text
+                    </h3>
                     <input
                       type="text"
                       value={allDesigns[side].customText}
@@ -559,18 +607,25 @@ const TshirtDesigner = () => {
 
                     <div className="grid grid-cols-2 gap-4 mt-3">
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-800 mb-2">Text Size</h3>
+                        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                          Text Size
+                        </h3>
                         <input
                           type="number"
                           value={allDesigns[side].textSize}
                           onChange={(e) =>
-                            updateCurrentDesign("textSize", Number(e.target.value))
+                            updateCurrentDesign(
+                              "textSize",
+                              Number(e.target.value)
+                            )
                           }
                           className="w-full px-3 py-2 border border-gray-400 rounded-md text-sm"
                         />
                       </div>
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-800 mb-2">Text Color</h3>
+                        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                          Text Color
+                        </h3>
                         <input
                           type="color"
                           value={allDesigns[side].textColor}
@@ -586,9 +641,13 @@ const TshirtDesigner = () => {
 
                 {activeTab === "font" && (
                   <>
-                    <h3 className="text-sm font-semibold text-gray-800 mb-2">Font Style</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                      Font Style
+                    </h3>
                     <select
-                      onChange={(e) => updateCurrentDesign("font", e.target.value)}
+                      onChange={(e) =>
+                        updateCurrentDesign("font", e.target.value)
+                      }
                       value={allDesigns[side].font}
                       className="w-full px-3 py-2 border border-gray-400 rounded-md text-sm"
                     >
@@ -609,6 +668,7 @@ const TshirtDesigner = () => {
           >
             Submit <MdNavigateNext size={22} className="ml-2 inline" />
           </button>
+
           {/* Tab Bar */}
           <div className="fixed bottom-14 left-0 w-full bg-gray-800 text-white flex justify-around py-2 z-50">
             <button
@@ -639,7 +699,6 @@ const TshirtDesigner = () => {
               <FaTimes size={20} />
               <span className="text-[10px]">Close</span>
             </button>
-
             <button
               onClick={() => setActiveTab("additional")}
               className="flex flex-col items-center"

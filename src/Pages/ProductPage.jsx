@@ -337,17 +337,20 @@ const ProductPage = () => {
               >
                 Regular T-Shirt
               </button>
-              <button
-                onClick={() => {
-                  navigate(
-                    `/design/${id}/${selectedColorCode.replace("#", "")}`
-                  );
-                  setShowModal(false);
-                }}
-                className="w-full bg-[#E5C870] text-black py-2 rounded-md hover:bg-green-600 transition-all"
-              >
-                Design T-Shirt
-              </button>
+            <button
+  onClick={() => {
+    navigate(
+      `/design/${id}/${selectedColorCode.replace("#", "")}`,
+      { state: { quantity: qty } } // ✅ Pass selected quantities to designer
+    );
+    setShowModal(false);
+  }}
+  className="w-full bg-[#E5C870] text-black py-2 rounded-md hover:bg-green-600 transition-all"
+>
+  Design T-Shirt
+</button>
+
+
             </div>
             <button
               onClick={() => setShowModal(false)}

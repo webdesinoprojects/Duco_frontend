@@ -45,19 +45,7 @@ const OrderDetailsCard = ({ orderId }) => {
     }
   };
 
-  const handleQlinkOrderIdChange = async (newId) => {
-    setOrder((prev) => ({ ...prev, qlinkOrderId: newId }));
-    try {
-      await fetch(`https://duco-backend.onrender.com/api/order/update/${orderId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qlinkOrderId: newId?.trim() || null }),
-      });
-    } catch (err) {
-      console.error("Failed to update qlinkOrderId", err);
-    }
-  };
-
+  
   const getStatusColor = (status) => {
     switch (status) {
       case "Pending": return "bg-yellow-100 text-yellow-800";
@@ -138,16 +126,6 @@ const OrderDetailsCard = ({ orderId }) => {
             <p className={`font-medium ${order.razorpayPaymentId ? "text-green-600" : "text-yellow-600"}`}>
               Payment Status: {order.razorpayPaymentId ? "Paid" : "Unpaid"}
             </p>
-            <div className="flex items-center gap-2">
-              <span>Qikink:</span>
-              <input
-                type="text"
-                onBlur={(e) => handleQlinkOrderIdChange(e.target.value)}
-                value={order?.qlinkOrderId ?? ""}
-                className="bg-green-100 text-black rounded px-2 py-1"
-                placeholder="Enter Qikink Order ID"
-              />
-            </div>
           </div>
         </div>
       </div>

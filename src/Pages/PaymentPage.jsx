@@ -1,45 +1,57 @@
 import React, { useState, useMemo } from "react";
-import PaymentButton from "../Components/PaymentButton"; // Import the component
+import PaymentButton from "../Components/PaymentButton";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import NetbankingPanel from "../Components/NetbankingPanel.jsx";
+import { completeOrder } from "../Service/APIservice"; // ✅ new import
 
 const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [showPayNow, setShowPayNow] = useState(false);
   const [netbankingType, setNetbankingType] = useState("");
   const locations = useLocation();
-
-  const orderpayload = locations.state || {};
   const navigate = useNavigate();
 
-  // ✅ Ensure email is present in address (backend requires it)
+  const orderpayload = locations.state || {};
+
+  // ✅ Ensure email present (backend requires)
   if (orderpayload?.address && !orderpayload.address.email) {
     orderpayload.address.email =
       orderpayload?.user?.email || "noemail@placeholder.com";
   }
 
+  // ✅ When selecting method
   const handlePaymentChange = (method) => {
     setPaymentMethod(method);
-    // ✅ show PayNow only for Razorpay payments
     setShowPayNow(method === "online" || method === "50%");
   };
 
-  const handleSubmit = () => {
-    if (paymentMethod === "netbanking") {
-      navigate("/order-processing", {
-        state: {
-          orderData: orderpayload,
-          paymentmode: "netbanking", // ✅ backend expects lowercase
-        },
-      });
-      toast.success("Order Placed!");
-    } else if (paymentMethod === "") {
+  // ✅ Handle Netbanking & 50% payment order creation
+  const handleSubmit = async () => {
+    if (!paymentMethod) {
       toast.error("Please select a payment method");
+      return;
+    }
+
+    try {
+      if (paymentMethod === "netbanking") {
+        const res = await completeOrder("manual_payment", "netbanking", orderpayload);
+        toast.success("✅ Order placed successfully!");
+        navigate("/order-success", { state: { order: res.order } });
+      } else if (paymentMethod === "50%") {
+        const res = await completeOrder("half_payment", "50%", orderpayload);
+        toast.success("✅ 50% order placed successfully!");
+        navigate("/order-success", { state: { order: res.order } });
+      } else if (paymentMethod === "") {
+        toast.error("Please select a payment method");
+      }
+    } catch (err) {
+      console.error("Order creation failed:", err);
+      toast.error("❌ Failed to place order");
     }
   };
 
-  // ✅ detect bulk orders
+  // ✅ detect bulk order
   const isBulkOrder = useMemo(() => {
     const items = orderpayload?.items ?? [];
     return items.some((item) =>
@@ -137,12 +149,22 @@ const PaymentPage = () => {
               Continue
             </button>
           )}
+
+          {!showPayNow && paymentMethod === "50%" && (
+            <button
+              onClick={handleSubmit}
+              className="w-full mt-6 py-2 px-4 bg-[#E5C870] text-black rounded-lg hover:bg-[#D4B752] font-semibold"
+            >
+              Continue
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
+// Optional: Reusable Row Components
 function DetailRow({ label, value, canCopy }) {
   const copy = () => navigator.clipboard.writeText(value);
   return (
