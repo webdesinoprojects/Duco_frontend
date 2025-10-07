@@ -315,10 +315,10 @@ const customProduct = {
       {/* Additional Files */}
       <div>
         <h3 className="text-sm font-semibold text-gray-800 mb-2">
-          Upload Additional Files
+          Upload Additional CDR Files
         </h3>
         <label className="flex flex-col items-center px-4 py-3 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-100 cursor-pointer transition-all">
-          <span className="text-xs text-gray-600">Click to select files</span>
+          <span className="text-xs text-gray-600">Click to select CDR files</span>
           <input
             type="file"
             multiple

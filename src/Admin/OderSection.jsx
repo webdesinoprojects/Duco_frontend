@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import OrderDetailsCard from "../Admin/Components/OrderDetailsCard"; // <-- make sure path is correct
+import OrderDetailsCard from "../Admin/Components/OrderDetailsCard"; // ✅ ensure path is correct
 
 // ✅ Better status badge colors
 const statusClass = (s = "") => {
@@ -56,7 +56,7 @@ const OderSection = () => {
       ) : (
         <div className="space-y-4">
           {orders.map((order) => {
-            const first = order?.products?.[0] || {};
+            const first = order?.products?.[0] || order?.items?.[0] || {};
             const email = order?.address?.email || order?.user?.email || "N/A";
 
             return (
@@ -79,9 +79,22 @@ const OderSection = () => {
                     </span>
                   </div>
 
-                  <p className="font-semibold text-sm sm:text-base truncate">
-                    {first.products_name || "Unnamed product"}
-                  </p>
+                  {/* ✅ Show product image + name */}
+                  <div className="flex items-center gap-3 mb-1">
+                    {first.image && (
+                      <img
+                        src={first.image}
+                        alt={first.name || "Product"}
+                        className="w-10 h-10 rounded object-contain border"
+                      />
+                    )}
+                    <p className="font-semibold text-sm sm:text-base truncate">
+                      {first.name ||
+                        first.products_name ||
+                        first.product_name ||
+                        "Unnamed product"}
+                    </p>
+                  </div>
 
                   <p className="text-xs text-gray-600">
                     {new Date(order.createdAt).toLocaleString("en-IN", {
@@ -99,7 +112,6 @@ const OderSection = () => {
                       : "No address"}
                   </p>
 
-                  {/* ✅ Show email as well */}
                   <p className="text-xs text-gray-500">📧 {email}</p>
                 </div>
 
