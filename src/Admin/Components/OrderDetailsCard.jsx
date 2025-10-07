@@ -76,13 +76,15 @@ const OrderDetailsCard = ({ orderId }) => {
   useEffect(() => {
     (async () => {
       try {
+        console.log("📡 Fetching order:", orderId);
         const res = await fetch(
           `https://duco-backend.onrender.com/api/order/${orderId}`
         );
         const data = await res.json();
+        console.log("🧾 Order fetched:", data);
         setOrder(data);
       } catch (err) {
-        console.error("Failed to fetch order", err);
+        console.error("❌ Failed to fetch order:", err);
       } finally {
         setLoading(false);
       }
@@ -169,9 +171,41 @@ const OrderDetailsCard = ({ orderId }) => {
         <h3 className="text-lg font-semibold mb-4">Order Items</h3>
 
         <div className="space-y-5">
-          {order.items?.map((item, index) => {
+          {(order.items || order.products)?.map((item, index) => {
             const qtySum = totalQty(item.quantity);
-            const design = item.design || item.design_data || {};
+            const design =
+              item.design ||
+              item.design_data ||
+              item.product?.design ||
+              item?.customDesign ||
+              {};
+
+            // 🪵 Debug logs for design data
+            console.log(`🎨 Item ${index} design:`, design);
+
+            // ✅ Fix — detect all naming possibilities
+            const possibleViews = {
+              front:
+                design.frontView ||
+                design.front ||
+                design.front_image ||
+                design.frontImg ||
+                (design.front?.uploadedImage ?? null),
+              back:
+                design.backView ||
+                design.back ||
+                (design.back?.uploadedImage ?? null),
+              left:
+                design.leftView ||
+                design.left ||
+                (design.left?.uploadedImage ?? null),
+              right:
+                design.rightView ||
+                design.right ||
+                (design.right?.uploadedImage ?? null),
+            };
+
+            console.log("🖼️ Detected Views:", possibleViews);
 
             return (
               <div key={index} className="bg-gray-50 rounded-lg p-4">
@@ -217,90 +251,83 @@ const OrderDetailsCard = ({ orderId }) => {
                   </div>
                 </div>
 
-                {/* ✅ Design Previews */}
-                {(item.design || item.design_data) && (
+                {/* ✅ Design Preview Section */}
+                {Object.values(possibleViews).some(
+                  (v) => typeof v === "string" && v.startsWith("data:image")
+                ) && (
                   <div className="mt-3">
                     <p className="text-sm font-medium text-gray-800 mb-2">
                       Design Preview
                     </p>
-
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {["frontView", "backView", "leftView", "rightView"].map(
-                        (view) =>
-                          design[view] ? (
-                            <div
-                              key={view}
-                              className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center"
-                            >
-                              <div className="w-full aspect-square overflow-hidden flex items-center justify-center">
-                                <img
-                                  src={
-                                    design[view].startsWith("data:image")
-                                      ? design[view]
-                                      : `${design[view]}`
-                                  }
-                                  alt={`${view} preview`}
-                                  className="w-full h-full object-contain"
-                                  onError={(e) =>
-                                    (e.target.style.display = "none")
-                                  }
-                                />
-                              </div>
-                              <div className="mt-2 flex items-center gap-2">
-                                <span className="text-[11px] text-gray-600 capitalize">
-                                  {view.replace("View", "")}
-                                </span>
-                                <a
-                                  href={design[view]}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-[11px] text-blue-600 hover:underline"
-                                >
-                                  Open
-                                </a>
-                              </div>
-                            </div>
-                          ) : null
-                      )}
-                    </div>
-
-                    {/* ✅ Uploaded Logo + Extra Files */}
-                    <div className="mt-3 space-y-1">
-                      {(design.uploadedLogo || design.uploaded_logo) && (
-                        <p className="text-xs">
-                          Logo File:{" "}
-                          <a
-                            href={design.uploadedLogo || design.uploaded_logo}
-                            target="_blank"
-                            className="text-blue-600 underline"
+                      {Object.entries(possibleViews).map(([view, img]) =>
+                        img && img.startsWith("data:image") ? (
+                          <div
+                            key={view}
+                            className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center"
                           >
-                            View Logo
-                          </a>
-                        </p>
-                      )}
-                      {Array.isArray(design.extraFiles) &&
-                        design.extraFiles.length > 0 && (
-                          <div className="text-xs">
-                            <p className="font-medium">Extra Files:</p>
-                            <ul className="list-disc pl-4">
-                              {design.extraFiles.map((f, i) => (
-                                <li key={i}>
-                                  <a
-                                    href={f.url || f || "#"}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                  >
-                                    {f.name || f.split("/").pop()}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
+                            <div className="w-full aspect-square overflow-hidden flex items-center justify-center">
+                              <img
+                                src={img}
+                                alt={`${view} preview`}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-[11px] text-gray-600 capitalize">
+                                {view}
+                              </span>
+                              <a
+                                href={img}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] text-blue-600 hover:underline"
+                              >
+                                Open
+                              </a>
+                            </div>
                           </div>
-                        )}
+                        ) : null
+                      )}
                     </div>
                   </div>
                 )}
+
+                {/* ✅ Uploaded Logo + Extra Files */}
+                <div className="mt-3 space-y-1">
+                  {(design.uploadedLogo || design.uploaded_logo) && (
+                    <p className="text-xs">
+                      Logo File:{" "}
+                      <a
+                        href={design.uploadedLogo || design.uploaded_logo}
+                        target="_blank"
+                        className="text-blue-600 underline"
+                      >
+                        View Logo
+                      </a>
+                    </p>
+                  )}
+                  {Array.isArray(design.extraFiles) &&
+                    design.extraFiles.length > 0 && (
+                      <div className="text-xs">
+                        <p className="font-medium">Extra Files:</p>
+                        <ul className="list-disc pl-4">
+                          {design.extraFiles.map((f, i) => (
+                            <li key={i}>
+                              <a
+                                href={f.url || f}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                {f.name || f.split("/").pop()}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                </div>
               </div>
             );
           })}
