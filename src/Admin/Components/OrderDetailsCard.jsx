@@ -7,9 +7,11 @@ function sortedEntries(quantity = {}) {
     ([a], [b]) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b)
   );
 }
+
 function totalQty(quantity = {}) {
   return Object.values(quantity || {}).reduce((s, n) => s + Number(n || 0), 0);
 }
+
 function QuantityChips({ quantity }) {
   const entries = sortedEntries(quantity);
   if (!entries.length) return <span className="text-slate-400">—</span>;
@@ -30,37 +32,53 @@ const OrderDetailsCard = ({ orderId }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const statusOptions = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+  const statusOptions = [
+    "Pending",
+    "Processing",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ];
 
   const handleStatusChange = async (newStatus) => {
     setOrder((prev) => ({ ...prev, status: newStatus }));
     try {
-      await fetch(`https://duco-backend.onrender.com/api/order/update/${orderId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      await fetch(
+        `https://duco-backend.onrender.com/api/order/update/${orderId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
     } catch (err) {
       console.error("Failed to update status", err);
     }
   };
 
-  
   const getStatusColor = (status) => {
     switch (status) {
-      case "Pending": return "bg-yellow-100 text-yellow-800";
-      case "Processing": return "bg-blue-100 text-blue-800";
-      case "Shipped": return "bg-indigo-100 text-indigo-800";
-      case "Delivered": return "bg-green-100 text-green-800";
-      case "Cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "Processing":
+        return "bg-blue-100 text-blue-800";
+      case "Shipped":
+        return "bg-indigo-100 text-indigo-800";
+      case "Delivered":
+        return "bg-green-100 text-green-800";
+      case "Cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`https://duco-backend.onrender.com/api/order/${orderId}`);
+        const res = await fetch(
+          `https://duco-backend.onrender.com/api/order/${orderId}`
+        );
         const data = await res.json();
         setOrder(data);
       } catch (err) {
@@ -79,7 +97,9 @@ const OrderDetailsCard = ({ orderId }) => {
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Order #{order._id}</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Order #{order._id}
+          </h2>
           <p className="text-gray-600">
             Placed on{" "}
             {new Date(order.createdAt).toLocaleDateString("en-IN", {
@@ -90,7 +110,11 @@ const OrderDetailsCard = ({ orderId }) => {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(order.status)}`}>
+          <span
+            className={`px-3 py-1 rounded-full text-sm ${getStatusColor(
+              order.status
+            )}`}
+          >
             {order.status}
           </span>
           <select
@@ -99,7 +123,9 @@ const OrderDetailsCard = ({ orderId }) => {
             className="block w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {statusOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
+              <option key={option} value={option}>
+                {option}
+              </option>
             ))}
           </select>
         </div>
@@ -113,8 +139,9 @@ const OrderDetailsCard = ({ orderId }) => {
             <p>{order.address?.fullName}</p>
             <p className="text-blue-600">{order.address?.mobileNumber}</p>
             <p className="text-gray-600">
-              {order.address?.houseNumber}, {order.address?.street}, {order.address?.city},{" "}
-              {order.address?.state} - {order.address?.pincode}
+              {order.address?.houseNumber}, {order.address?.street},{" "}
+              {order.address?.city}, {order.address?.state} -{" "}
+              {order.address?.pincode}
             </p>
           </div>
         </div>
@@ -122,8 +149,17 @@ const OrderDetailsCard = ({ orderId }) => {
         <div>
           <h3 className="text-lg font-semibold mb-2">Payment Information</h3>
           <div className="space-y-2">
-            <p>Total Amount: ₹{Number(order.price || order.amount || 0).toFixed(2)}</p>
-            <p className={`font-medium ${order.razorpayPaymentId ? "text-green-600" : "text-yellow-600"}`}>
+            <p>
+              Total Amount: ₹
+              {Number(order.price || order.amount || 0).toFixed(2)}
+            </p>
+            <p
+              className={`font-medium ${
+                order.razorpayPaymentId
+                  ? "text-green-600"
+                  : "text-yellow-600"
+              }`}
+            >
               Payment Status: {order.razorpayPaymentId ? "Paid" : "Unpaid"}
             </p>
           </div>
@@ -137,24 +173,40 @@ const OrderDetailsCard = ({ orderId }) => {
         <div className="space-y-5">
           {order.items?.map((item, index) => {
             const qtySum = totalQty(item.quantity);
+            const design = item.design || item.design_data || {};
+
             return (
               <div key={index} className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-start gap-4">
                   <div className="w-20 h-20 bg-white rounded border border-gray-200 overflow-hidden flex items-center justify-center">
                     {item.image ? (
-                      <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-contain"
+                      />
                     ) : (
                       <div className="text-xs text-gray-400">No image</div>
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900">{item.name}</p>
+                    <p className="font-semibold text-gray-900">
+                      {item.name ||
+                        item.products_name ||
+                        item.product?.products_name ||
+                        "Unnamed Design"}
+                    </p>
 
                     <div className="text-sm text-gray-600 mt-1">
-                      Color: <span className="font-medium">{item.colortext || item.color || "-"}</span>
+                      Color:{" "}
+                      <span className="font-medium">
+                        {item.colortext || item.color || "-"}
+                      </span>
                       &nbsp;|&nbsp; Qty:&nbsp;
-                      <span className="font-medium">{item.qty || qtySum}</span>
+                      <span className="font-medium">
+                        {item.qty || qtySum}
+                      </span>
                     </div>
 
                     <div className="mt-2">
@@ -168,51 +220,78 @@ const OrderDetailsCard = ({ orderId }) => {
                 </div>
 
                 {/* ✅ Design Previews */}
-                {item.design && (
+                {(item.design || item.design_data) && (
                   <div className="mt-3">
-                    <p className="text-sm font-medium text-gray-800 mb-2">Design Preview</p>
+                    <p className="text-sm font-medium text-gray-800 mb-2">
+                      Design Preview
+                    </p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {["frontView", "backView", "leftView", "rightView"].map((view) =>
-                        item.design[view] ? (
-                          <div key={view} className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center">
-                            <div className="w-full aspect-square overflow-hidden flex items-center justify-center">
-                              <img src={item.design[view]} alt={`${view} preview`} className="w-full h-full object-contain" />
+                      {["frontView", "backView", "leftView", "rightView"].map(
+                        (view) =>
+                          design[view] ? (
+                            <div
+                              key={view}
+                              className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center"
+                            >
+                              <div className="w-full aspect-square overflow-hidden flex items-center justify-center">
+                                <img
+                                  src={design[view]}
+                                  alt={`${view} preview`}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                              <div className="mt-2 flex items-center gap-2">
+                                <span className="text-[11px] text-gray-600 capitalize">
+                                  {view.replace("View", "")}
+                                </span>
+                                <a
+                                  href={design[view]}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[11px] text-blue-600 hover:underline"
+                                >
+                                  Open
+                                </a>
+                              </div>
                             </div>
-                            <div className="mt-2 flex items-center gap-2">
-                              <span className="text-[11px] text-gray-600 capitalize">{view.replace("View", "")}</span>
-                              <a href={item.design[view]} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">
-                                Open
-                              </a>
-                            </div>
-                          </div>
-                        ) : null
+                          ) : null
                       )}
                     </div>
 
                     {/* ✅ Uploaded Logo + Extra Files */}
                     <div className="mt-3 space-y-1">
-                      {item.design.uploadedLogo && (
+                      {(design.uploadedLogo || design.uploaded_logo) && (
                         <p className="text-xs">
                           Logo File:{" "}
-                          <a href={item.design.uploadedLogo} target="_blank" className="text-blue-600 underline">
+                          <a
+                            href={design.uploadedLogo || design.uploaded_logo}
+                            target="_blank"
+                            className="text-blue-600 underline"
+                          >
                             View Logo
                           </a>
                         </p>
                       )}
-                      {Array.isArray(item.design.extraFiles) && item.design.extraFiles.length > 0 && (
-                        <div className="text-xs">
-                          <p className="font-medium">Extra Files:</p>
-                          <ul className="list-disc pl-4">
-                            {item.design.extraFiles.map((f, i) => (
-                              <li key={i}>
-                                <a href={f.url || "#"} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                                  {f.name}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {Array.isArray(design.extraFiles) &&
+                        design.extraFiles.length > 0 && (
+                          <div className="text-xs">
+                            <p className="font-medium">Extra Files:</p>
+                            <ul className="list-disc pl-4">
+                              {design.extraFiles.map((f, i) => (
+                                <li key={i}>
+                                  <a
+                                    href={f.url || f || "#"}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {f.name || f.split("/").pop()}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                     </div>
                   </div>
                 )}
