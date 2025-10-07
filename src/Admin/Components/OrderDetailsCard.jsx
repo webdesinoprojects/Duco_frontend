@@ -171,7 +171,7 @@ const OrderDetailsCard = ({ orderId }) => {
         <div className="space-y-5">
           {order.items?.map((item, index) => {
             const qtySum = totalQty(item.quantity);
-            const design = item.design || {};
+            const design = item.design || item.design_data || {};
 
             return (
               <div key={index} className="bg-gray-50 rounded-lg p-4">
@@ -190,7 +190,10 @@ const OrderDetailsCard = ({ orderId }) => {
 
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900">
-                      {item.name || "Unnamed Product"}
+                      {item.name ||
+                        item.products_name ||
+                        item.product?.products_name ||
+                        "Unnamed Design"}
                     </p>
 
                     <div className="text-sm text-gray-600 mt-1">
@@ -215,35 +218,40 @@ const OrderDetailsCard = ({ orderId }) => {
                 </div>
 
                 {/* ✅ Design Previews */}
-                {(design.front?.uploadedImage ||
-                  design.back?.uploadedImage ||
-                  design.left?.uploadedImage ||
-                  design.right?.uploadedImage) && (
+                {(item.design || item.design_data) && (
                   <div className="mt-3">
                     <p className="text-sm font-medium text-gray-800 mb-2">
                       Design Preview
                     </p>
+
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {["front", "back", "left", "right"].map(
+                      {["frontView", "backView", "leftView", "rightView"].map(
                         (view) =>
-                          design[view]?.uploadedImage && (
+                          design[view] ? (
                             <div
                               key={view}
                               className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center"
                             >
                               <div className="w-full aspect-square overflow-hidden flex items-center justify-center">
                                 <img
-                                  src={design[view].uploadedImage}
+                                  src={
+                                    design[view].startsWith("data:image")
+                                      ? design[view]
+                                      : `${design[view]}`
+                                  }
                                   alt={`${view} preview`}
                                   className="w-full h-full object-contain"
+                                  onError={(e) =>
+                                    (e.target.style.display = "none")
+                                  }
                                 />
                               </div>
                               <div className="mt-2 flex items-center gap-2">
                                 <span className="text-[11px] text-gray-600 capitalize">
-                                  {view}
+                                  {view.replace("View", "")}
                                 </span>
                                 <a
-                                  href={design[view].uploadedImage}
+                                  href={design[view]}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="text-[11px] text-blue-600 hover:underline"
@@ -252,47 +260,47 @@ const OrderDetailsCard = ({ orderId }) => {
                                 </a>
                               </div>
                             </div>
-                          )
+                          ) : null
                       )}
+                    </div>
+
+                    {/* ✅ Uploaded Logo + Extra Files */}
+                    <div className="mt-3 space-y-1">
+                      {(design.uploadedLogo || design.uploaded_logo) && (
+                        <p className="text-xs">
+                          Logo File:{" "}
+                          <a
+                            href={design.uploadedLogo || design.uploaded_logo}
+                            target="_blank"
+                            className="text-blue-600 underline"
+                          >
+                            View Logo
+                          </a>
+                        </p>
+                      )}
+                      {Array.isArray(design.extraFiles) &&
+                        design.extraFiles.length > 0 && (
+                          <div className="text-xs">
+                            <p className="font-medium">Extra Files:</p>
+                            <ul className="list-disc pl-4">
+                              {design.extraFiles.map((f, i) => (
+                                <li key={i}>
+                                  <a
+                                    href={f.url || f || "#"}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {f.name || f.split("/").pop()}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                     </div>
                   </div>
                 )}
-
-                {/* ✅ Uploaded Logo + Extra Files */}
-                <div className="mt-3 space-y-1">
-                  {(design.uploadedLogo || design.uploaded_logo) && (
-                    <p className="text-xs">
-                      Logo File:{" "}
-                      <a
-                        href={design.uploadedLogo || design.uploaded_logo}
-                        target="_blank"
-                        className="text-blue-600 underline"
-                      >
-                        View Logo
-                      </a>
-                    </p>
-                  )}
-                  {Array.isArray(design.extraFiles) &&
-                    design.extraFiles.length > 0 && (
-                      <div className="text-xs">
-                        <p className="font-medium">Extra Files:</p>
-                        <ul className="list-disc pl-4">
-                          {design.extraFiles.map((f, i) => (
-                            <li key={i}>
-                              <a
-                                href={f.url || f}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                {f.name || f.split("/").pop()}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                </div>
               </div>
             );
           })}
