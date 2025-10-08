@@ -1,20 +1,23 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useContext } from "react";
 import PaymentButton from "../Components/PaymentButton";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import NetbankingPanel from "../Components/NetbankingPanel.jsx";
-import { completeOrder } from "../Service/APIservice"; // ✅ new import
+import { completeOrder } from "../Service/APIservice";
+import { CartContext } from "../ContextAPI/CartContext.jsx"; // ✅ fixed useCart import
 
 const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [showPayNow, setShowPayNow] = useState(false);
   const [netbankingType, setNetbankingType] = useState("");
+  const [showNetModal, setShowNetModal] = useState(false); // ✅ new modal state
   const locations = useLocation();
   const navigate = useNavigate();
-  const { cart } = useCart();
+  const { cart } = useContext(CartContext) || { cart: [] };
 
   const [cartLoaded, setCartLoaded] = useState(false);
 
+  // ✅ Load fallback cart if needed
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem("cart"));
     if (savedCart && savedCart.length > 0) {
@@ -25,17 +28,63 @@ const PaymentPage = () => {
 
   const orderpayload = locations.state || {};
 
-  // ✅ Ensure email present (backend requires)
+  // ✅ Debug log order payload
+  useEffect(() => {
+    if (!orderpayload) return;
+
+    console.group("🧾 AUTO ORDER PAYLOAD PREVIEW");
+    console.log("📦 Full order payload that will be sent to backend:");
+    console.log(JSON.stringify(orderpayload, null, 2));
+
+    const summary = {
+      user: orderpayload?.user?._id || "❌ Missing",
+      address: orderpayload?.address?.fullName || "❌ Missing",
+      itemCount: orderpayload?.items?.length || 0,
+      totalPay: orderpayload?.totalPay || 0,
+    };
+    console.table(summary);
+    console.groupEnd();
+  }, [orderpayload]);
+
+  // ✅ Ensure email present
   if (orderpayload?.address && !orderpayload.address.email) {
     orderpayload.address.email =
       orderpayload?.user?.email || "noemail@placeholder.com";
   }
 
+  // ✅ Determine if B2B (Corporate)
+  const isB2B = useMemo(() => {
+    const items = orderpayload?.items ?? cart ?? [];
+    return items.some((item) => item?.isCorporate === true);
+  }, [orderpayload, cart]);
+
+  // ✅ Dynamic payment options
+  const paymentOptions = useMemo(() => {
+    if (isB2B) {
+      return ["Netbanking", "Pickup from Store", "Pay Online"];
+    } else {
+      return ["Pay Online"];
+    }
+  }, [isB2B]);
+
   // ✅ When selecting method
   const handlePaymentChange = (method) => {
     setPaymentMethod(method);
-    // For Pay Online, trigger Razorpay button
-    setShowPayNow(method === "Pay Online" || method === "online" || method === "50%");
+    setShowPayNow(
+      method === "Pay Online" || method === "online" || method === "50%"
+    );
+  };
+
+  // ✅ Common Order Creator for Manual Payments
+  const placeOrder = async (mode, successMsg) => {
+    try {
+      const res = await completeOrder("manual_payment", mode, orderpayload);
+      toast.success(`✅ ${successMsg}`);
+      navigate("/order-success", { state: { order: res.order } });
+    } catch (err) {
+      console.error("Order creation failed:", err);
+      toast.error("❌ Failed to place order");
+    }
   };
 
   // ✅ Handle Manual (non-Razorpay) payments
@@ -45,23 +94,32 @@ const PaymentPage = () => {
       return;
     }
 
-    try {
-      if (paymentMethod === "netbanking") {
-        const res = await completeOrder("manual_payment", "netbanking", orderpayload);
-        toast.success("✅ Order placed successfully!");
-        navigate("/order-success", { state: { order: res.order } });
-      } else if (paymentMethod === "50%" || paymentMethod === "half_payment") {
-        const res = await completeOrder("half_payment", "50%", orderpayload);
-        toast.success("✅ 50% advance order placed successfully!");
-        navigate("/order-success", { state: { order: res.order } });
-      }
-    } catch (err) {
-      console.error("Order creation failed:", err);
-      toast.error("❌ Failed to place order");
+    // 🏬 Pickup from Store
+    if (paymentMethod === "Pickup from Store") {
+      return placeOrder("store_pickup", "Pickup order placed successfully!");
+    }
+
+    // 🏦 Netbanking (open modal first)
+    if (paymentMethod === "Netbanking" || paymentMethod === "netbanking") {
+      setShowNetModal(true);
+      return;
+    }
+
+    // 💰 50% payment
+    if (paymentMethod === "50%" || paymentMethod === "half_payment") {
+      const res = await completeOrder("half_payment", "50%", orderpayload);
+      toast.success("✅ 50% advance order placed successfully!");
+      navigate("/order-success", { state: { order: res.order } });
     }
   };
 
-  // ✅ detect bulk order (still supported)
+  // ✅ Confirm Netbanking flow
+  const handleNetConfirm = async () => {
+    setShowNetModal(false);
+    return placeOrder("netbanking", "Netbanking order placed successfully!");
+  };
+
+  // ✅ detect bulk order
   const isBulkOrder = useMemo(() => {
     const items = orderpayload?.items ?? [];
     return items.some((item) =>
@@ -71,13 +129,13 @@ const PaymentPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg relative">
         <h1 className="text-2xl font-semibold text-center text-[#0A0A0A] mb-6">
           Select Payment Method
         </h1>
 
         <div className="space-y-4">
-          {/* 💡 Render dynamically based on paymentOptions array */}
+          {/* 💡 Dynamic Rendering Based on B2B or B2C */}
           {paymentOptions.map((option) => (
             <div key={option}>
               <label className="flex items-start gap-3 text-lg text-[#0A0A0A]">
@@ -92,7 +150,7 @@ const PaymentPage = () => {
                 <div className="w-full">
                   <span className="font-semibold">{option}</span>
 
-                  {/* For Netbanking → show details */}
+                  {/* For Netbanking */}
                   {option === "Netbanking" && paymentMethod === "Netbanking" && (
                     <div className="mt-3">
                       <select
@@ -115,14 +173,90 @@ const PaymentPage = () => {
             </div>
           ))}
 
-          {/* ✅ For online → Razorpay PayNow button */}
-          {showPayNow && paymentMethod === "online" && (
-            <div className="mt-6">
-              <PaymentButton orderData={orderpayload} />
+          {/* ✅ Razorpay button for Pay Online */}
+          {showPayNow && paymentMethod.toLowerCase().includes("online") && (
+            <div className="mt-6 space-y-3">
+              {/* Debug Preview Button (Dev Only) */}
+              {import.meta.env.MODE !== "production" && (
+                <button
+                  onClick={() => {
+                    console.group("🧾 ORDER PAYLOAD PREVIEW BEFORE PAYMENT");
+                    console.log("🔹 Payment mode:", paymentMethod);
+
+                    const localCart =
+                      JSON.parse(localStorage.getItem("cart")) || [];
+                    const itemsSource =
+                      cart?.length > 0
+                        ? cart
+                        : localCart.length > 0
+                        ? localCart
+                        : orderpayload?.items || [];
+
+                    console.log(
+                      "🧩 Using items from:",
+                      cart?.length > 0
+                        ? "CartContext"
+                        : localCart.length > 0
+                        ? "LocalStorage"
+                        : "OrderPayload"
+                    );
+
+                    const orderPayload = {
+                      items: itemsSource.map((item, idx) => {
+                        const missing = [];
+                        if (!item.printroveProductId)
+                          missing.push("printroveProductId");
+                        if (!item.printroveVariantId)
+                          missing.push("printroveVariantId");
+                        if (!item.previewImages?.front)
+                          missing.push("previewImages.front");
+
+                        if (missing.length > 0)
+                          console.warn(
+                            `⚠ Item ${idx + 1}: Missing ${missing.join(", ")}`
+                          );
+
+                        return {
+                          id: item.id,
+                          productId: item.productId || item._id,
+                          name:
+                            item.products_name || item.name || "Custom T-shirt",
+                          printroveProductId: item.printroveProductId || null,
+                          printroveVariantId: item.printroveVariantId || null,
+                          color: item.color,
+                          gender: item.gender,
+                          price: item.price,
+                          quantity: item.quantity,
+                          previewImages: item.previewImages || {},
+                          design: item.design || {},
+                        };
+                      }),
+                      address: orderpayload?.address || {},
+                      user: orderpayload?.user || {},
+                      paymentmode: paymentMethod,
+                      totalPay: orderpayload?.totalPay || 0,
+                    };
+
+                    console.log(JSON.stringify(orderPayload, null, 2));
+                    console.groupEnd();
+                  }}
+                  className="w-full py-2 px-4 bg-gray-700 text-white rounded-lg hover:bg-gray-800 font-semibold"
+                >
+                  Preview Order Payload (Console)
+                </button>
+              )}
+
+              {/* Razorpay Actual Button */}
+              <PaymentButton
+                orderData={{
+                  ...orderpayload,
+                  items: cart?.length > 0 ? cart : orderpayload?.items || [],
+                }}
+              />
             </div>
           )}
 
-          {/* 🟢 For Netbanking and Pickup and 50% advance → Continue button */}
+          {/* ✅ For manual methods → Continue */}
           {!showPayNow &&
             (paymentMethod === "Netbanking" ||
               paymentMethod === "Pickup from Store" ||
@@ -141,12 +275,39 @@ const PaymentPage = () => {
           <div>Order Type: {isB2B ? "Corporate (B2B)" : "Retail (B2C)"}</div>
           <div>Available Options: {paymentOptions.join(", ")}</div>
         </div>
+
+        {/* 🪟 Netbanking Confirmation Modal */}
+        {showNetModal && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md text-center">
+              <h2 className="text-lg font-semibold mb-2">Confirm Netbanking Payment</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Please ensure your payment via {netbankingType.toUpperCase()} is complete. 
+                Once done, click below to confirm your order.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={handleNetConfirm}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
+                  ✅ Confirm Payment
+                </button>
+                <button
+                  onClick={() => setShowNetModal(false)}
+                  className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-// Optional reusable rows (unchanged)
+// ✅ Optional Utility Rows (unchanged)
 function DetailRow({ label, value, canCopy }) {
   const copy = () => navigator.clipboard.writeText(value);
   return (

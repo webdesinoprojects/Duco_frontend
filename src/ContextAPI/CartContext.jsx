@@ -99,6 +99,7 @@ export const CartProvider = ({ children }) => {
       value={{
         cart,
         addToCart,
+        setCart,
         removeFromCart,
         clearCart,
         updateQuantity,
