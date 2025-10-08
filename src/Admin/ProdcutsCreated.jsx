@@ -54,6 +54,7 @@ const ProductsCreated = () => {
     gender: "Male",
     printroveProductId: "", // ✅ NEW
     printroveVariantId: "", // ✅ NEW
+    isCorporate: false, // ✅ NEW FIELD
   });
 
   // 🔹 Step Navigation
@@ -446,6 +447,22 @@ const ProductsCreated = () => {
               <option value="Unisex">Unisex</option>
             </select>
 
+            {/* 🟢 Corporate Product Toggle */}
+            <div className="flex items-center gap-2 mb-6">
+              <input
+                type="checkbox"
+                id="isCorporate"
+                checked={formData.isCorporate}
+                onChange={(e) =>
+                  setFormData({ ...formData, isCorporate: e.target.checked })
+                }
+                className="w-4 h-4 accent-blue-600"
+              />
+              <label htmlFor="isCorporate" className="text-gray-800 text-sm">
+                Mark as Corporate Product (B2B)
+              </label>
+            </div>
+
             {/* 🟢 Printrove Mapping */}
             <h3 className="font-semibold text-lg text-gray-700 mt-4">
               Printrove Product
@@ -500,6 +517,10 @@ const ProductsCreated = () => {
               </p>
               <p>
                 <strong>Subcategory:</strong> {formData.subcategory}
+              </p>
+              <p>
+                <strong>Corporate:</strong>{" "}
+                {formData.isCorporate ? "✅ Yes (B2B)" : "❌ No (B2C)"}
               </p>
             </div>
           </>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom"; // ✅ added useLocation
 import { getInvoiceByOrder } from "../Service/APIservice";
 import { useCart } from "../ContextAPI/CartContext";
 import jsPDF from "jspdf";
@@ -210,9 +210,21 @@ const InvoiceDucoTailwind = ({ data }) => {
 export default function OrderSuccess() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ access state
   const [invoiceData, setInvoiceData] = useState(null);
   const { clearCart } = useCart();
   const invoiceRef = useRef();
+
+  // ✅ Read passed data (if available)
+  const paymentMethod =
+    location.state?.paymentMethod || "Pay Online (Default)";
+  const isB2B =
+    location.state?.isB2B !== undefined
+      ? location.state.isB2B
+      : false;
+
+  console.log("💳 Payment Mode:", paymentMethod);
+  console.log("🏢 Order Type:", isB2B ? "B2B" : "B2C");
 
   useEffect(() => {
     async function fetchInvoice() {
@@ -230,18 +242,14 @@ export default function OrderSuccess() {
         const pf = inv.charges?.pf || 0;
         const printing = inv.charges?.printing || 0;
 
-        // ✅ Split IGST (5%) into CGST + SGST (2.5% each)
-       // ✅ Correct GST split
-       const gstRate = inv.tax?.igstRate || 5;
-       const gstTotal = (subtotal * gstRate) / 100;
-
-       const cgstRate = gstRate / 2;
-       const sgstRate = gstRate / 2;
-
-       const cgstAmount = gstTotal / 2;
-       const sgstAmount = gstTotal / 2;
-
-       const total = subtotal + pf + printing + gstTotal;
+        // ✅ Correct GST split
+        const gstRate = inv.tax?.igstRate || 5;
+        const gstTotal = (subtotal * gstRate) / 100;
+        const cgstRate = gstRate / 2;
+        const sgstRate = gstRate / 2;
+        const cgstAmount = gstTotal / 2;
+        const sgstAmount = gstTotal / 2;
+        const total = subtotal + pf + printing + gstTotal;
 
         const formatted = {
           ...inv,
@@ -280,7 +288,6 @@ export default function OrderSuccess() {
     pdf.save(`Invoice_${orderId}.pdf`);
   };
 
-  // ✅ Loading state
   if (!invoiceData) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -303,6 +310,17 @@ export default function OrderSuccess() {
           placed successfully. A confirmation email & invoice have been sent to
           your registered email address.
         </p>
+
+        {/* 🧾 Show Payment Mode and Order Type */}
+        <div className="mt-4 p-3 bg-gray-100 border rounded-lg text-gray-800 text-sm inline-block">
+          <p>
+            <b>Payment Method:</b> {paymentMethod}
+          </p>
+          <p>
+            <b>Order Type:</b> {isB2B ? "Corporate (B2B)" : "Retail (B2C)"}
+          </p>
+        </div>
+
         <button
           onClick={downloadPDF}
           className="mt-4 px-6 py-2 rounded-lg bg-black text-white hover:opacity-90 cursor-pointer"

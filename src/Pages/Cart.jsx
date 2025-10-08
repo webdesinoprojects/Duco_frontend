@@ -7,7 +7,6 @@ import { getproducts, getChargePlanRates } from "../Service/APIservice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { usePriceContext } from "../ContextAPI/PriceContext.jsx";
-
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import JsBarcode from "jsbarcode";
@@ -17,10 +16,9 @@ const safeNum = (v, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-// ✅ Invoice component
+// ✅ Invoice Component
 const InvoiceDucoTailwind = ({ data }) => {
   const barcodeRef = useRef(null);
-
   useEffect(() => {
     if (barcodeRef.current && data?.invoice?.number) {
       JsBarcode(barcodeRef.current, data.invoice.number, {
@@ -58,7 +56,6 @@ const InvoiceDucoTailwind = ({ data }) => {
       </div>
 
       <svg ref={barcodeRef}></svg>
-
       <hr style={{ margin: "15px 0" }} />
 
       <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -75,7 +72,6 @@ const InvoiceDucoTailwind = ({ data }) => {
       </div>
 
       <hr style={{ margin: "15px 0" }} />
-
       <div>
         <h3>Bill To:</h3>
         <p>{data.billTo.name}</p>
@@ -84,15 +80,9 @@ const InvoiceDucoTailwind = ({ data }) => {
       </div>
 
       <hr style={{ margin: "15px 0" }} />
-
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
-          <tr
-            style={{
-              borderBottom: "2px solid #000",
-              background: "#f2f2f2",
-            }}
-          >
+          <tr style={{ borderBottom: "2px solid #000", background: "#f2f2f2" }}>
             <th style={{ textAlign: "left", padding: "6px" }}>S.No</th>
             <th style={{ textAlign: "left", padding: "6px" }}>Description</th>
             <th style={{ textAlign: "left", padding: "6px" }}>Qty</th>
@@ -130,13 +120,11 @@ const InvoiceDucoTailwind = ({ data }) => {
       </h2>
 
       <hr style={{ margin: "15px 0" }} />
-
       <ul>
         {data.terms.map((t, i) => (
           <li key={i}>{t}</li>
         ))}
       </ul>
-
       <p style={{ marginTop: "30px", fontWeight: "bold", textAlign: "right" }}>
         For {data.forCompany}
       </p>
@@ -145,7 +133,8 @@ const InvoiceDucoTailwind = ({ data }) => {
 };
 
 const Cart = () => {
-  const { cart, removeFromCart, updateQuantity } = useContext(CartContext);
+  const { cart, setCart, removeFromCart, updateQuantity } =
+    useContext(CartContext);
   const [user, setUser] = useState(null);
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -154,12 +143,21 @@ const Cart = () => {
 
   const navigate = useNavigate();
   const { toConvert } = usePriceContext();
-
   const invoiceRef = useRef();
 
   const [pfPerUnit, setPfPerUnit] = useState(0);
   const [printPerUnit, setPrintPerUnit] = useState(0);
   const [gstPercent, setGstPercent] = useState(0);
+
+  // Restore summary from localStorage
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("orderSummary"));
+    if (saved) {
+      setPfPerUnit(saved.pfPerUnit || 0);
+      setPrintPerUnit(saved.printPerUnit || 0);
+      setGstPercent(saved.gstPercent || 0);
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -170,6 +168,7 @@ const Cart = () => {
     }
   }, []);
 
+  // Fetch all products
   useEffect(() => {
     const run = async () => {
       try {
@@ -185,12 +184,22 @@ const Cart = () => {
     run();
   }, []);
 
+  // ✅ Sync cart items with updated product data
+  useEffect(() => {
+    if (products.length && cart.length) {
+      const synced = cart.map((ci) => {
+        const p = products.find((x) => x._id === ci.id);
+        return p ? { ...p, ...ci } : ci;
+      });
+      setCart(synced);
+    }
+  }, [products]);
+
+  // Actual combined data
   const actualData = useMemo(() => {
-    if (!Array.isArray(cart)) return [];
+    if (!Array.isArray(cart) || !products.length) return [];
     return cart.map((ci) => {
-      const p = Array.isArray(products)
-        ? products.find((x) => x._id === ci.id)
-        : null;
+      const p = products.find((x) => x._id === ci.id);
       return p ? { ...p, ...ci } : ci;
     });
   }, [cart, products]);
@@ -221,16 +230,27 @@ const Cart = () => {
     [actualData]
   );
 
+  // Fetch charge rates
   useEffect(() => {
     const fetchRates = async () => {
       try {
         setLoadingRates(true);
-        // ✅ Pass subtotal to backend
         const res = await getChargePlanRates(totalQuantity, subtotal);
         if (res?.success) {
-          setPfPerUnit(safeNum(res.data?.perUnit?.pakageingandforwarding, 0));
-          setPrintPerUnit(safeNum(res.data?.perUnit?.printingcost, 0));
-          setGstPercent(safeNum(res?.data?.gstPercent, 0));
+          const pf = safeNum(res.data?.perUnit?.pakageingandforwarding, 0);
+          const print = safeNum(res.data?.perUnit?.printingcost, 0);
+          const gst = safeNum(res?.data?.gstPercent, 0);
+          setPfPerUnit(pf);
+          setPrintPerUnit(print);
+          setGstPercent(gst);
+          localStorage.setItem(
+            "orderSummary",
+            JSON.stringify({
+              pfPerUnit: pf,
+              printPerUnit: print,
+              gstPercent: gst,
+            })
+          );
         }
       } finally {
         setLoadingRates(false);
@@ -260,82 +280,27 @@ const Cart = () => {
     [actualData, grandTotal, toConvert, address, user]
   );
 
-  // ✅ Invoice data with correct tax
-  const invoiceData = {
-    company: {
-      name: "DUCO ART PRIVATE LIMITED",
-      address: "123 Teen Murti Marg, New Delhi, India",
-      gstin: "22AAICD1719N1ZM",
-      email: "support@ducoart.com",
-    },
-    invoice: {
-      number: "TEST-" + Math.floor(Math.random() * 10000),
-      date: new Date().toLocaleDateString(),
-      placeOfSupply: address?.state || "Delhi",
-      copyType: "Original Copy",
-    },
-    billTo: {
-      name: user?.name || "Guest User",
-      address: address?.full || "Not provided",
-      phone: user?.phone || "N/A",
-    },
-    items: actualData.map((item, idx) => {
-      const sizes = Object.entries(item.quantity || {})
-        .filter(([size, qty]) => qty > 0)
-        .map(([size, qty]) => `${size} × ${qty}`)
-        .join(", ");
-      return {
-        sno: idx + 1,
-        description: `${item.name || "Product"}${
-          sizes ? ` (Sizes: ${sizes})` : ""
-        }${item.color ? `, Color: ${item.color}` : ""}`,
-        qty: Object.values(item.quantity || {}).reduce(
-          (a, b) => a + Number(b || 0),
-          0
-        ),
-        unit: "Pcs.",
-        price: item.price,
-      };
-    }),
-    charges: { pf: pfTotal, printing: printTotal },
-    tax: {
-      cgstRate: gstPercent / 2,
-      sgstRate: gstPercent / 2,
-      cgstAmount: gstTotal / 2,
-      sgstAmount: gstTotal / 2,
-    },
-    terms: [
-      "Thank you for shopping with DucoArt!",
-      "Goods once sold will not be taken back.",
-    ],
-    forCompany: "DUCO ART PRIVATE LIMITED",
-    subtotal: subtotal,
-    total: grandTotal,
-  };
+  // 💡 NEW: B2B/B2C Payment Logic based on backend field
+  const isB2B = actualData.some((item) => item.isCorporate === true);
 
-  const downloadPDF = async () => {
-    const input = invoiceRef.current;
-    if (!input) return;
+  const paymentOptions = isB2B
+    ? ["Netbanking", "Pickup from Store", "Pay Online"]
+    : ["Pay Online"];
 
-    const canvas = await html2canvas(input, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
+  console.log("💳 Order Type:", isB2B ? "B2B (Corporate)" : "B2C (Retail)");
+  console.log("💰 Available payment options:", paymentOptions);
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const ratio = Math.min(
-      pageWidth / canvas.width,
-      pageHeight / canvas.height
+  if (loadingProducts) return <Loading />;
+  if (!products.length)
+    return (
+      <div className="p-8 text-center text-gray-300">Loading products...</div>
     );
-    const imgWidth = canvas.width * ratio;
-    const imgHeight = canvas.height * ratio;
-    const marginX = (pageWidth - imgWidth) / 2;
-
-    pdf.addImage(imgData, "PNG", marginX, 10, imgWidth, imgHeight);
-    pdf.save("Invoice_Test.pdf");
-  };
-
-  if (loadingProducts || loadingRates) return <Loading />;
+  if (!cart?.length)
+    return (
+      <div className="p-8 text-center text-gray-400 text-xl">
+        Your cart is empty.
+      </div>
+    );
 
   return (
     <div className="min-h-screen text-white p-8">
@@ -343,35 +308,24 @@ const Cart = () => {
 
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1">
-          {actualData.length > 0 ? (
-            actualData.map((item, i) => (
-              <CartItem
-                key={`${item._id}-${i}`}
-                item={item}
-                removeFromCart={() =>
-                  removeFromCart(
-                    item.id,
-                    item.quantity,
-                    item.color,
-                    item.design
-                  )
-                }
-                updateQuantity={(newQty) =>
-                  updateQuantity(
-                    item.id,
-                    item.quantity,
-                    item.color,
-                    item.design,
-                    newQty
-                  )
-                }
-              />
-            ))
-          ) : (
-            <div className="text-gray-400 text-center mt-16 text-xl">
-              Your cart is empty.
-            </div>
-          )}
+          {actualData.map((item, i) => (
+            <CartItem
+              key={`${item._id}-${i}`}
+              item={item}
+              removeFromCart={() =>
+                removeFromCart(item.id, item.quantity, item.color, item.design)
+              }
+              updateQuantity={(newQty) =>
+                updateQuantity(
+                  item.id,
+                  item.quantity,
+                  item.color,
+                  item.design,
+                  newQty
+                )
+              }
+            />
+          ))}
         </div>
 
         {/* Order Summary */}
@@ -413,14 +367,35 @@ const Cart = () => {
                   toast.error("⚠️ Please select a delivery address");
                   return;
                 }
-                navigate("/payment", { state: orderPayload });
+                localStorage.removeItem("orderSummary");
+                navigate("/payment", {
+                  state: { ...orderPayload, paymentOptions, isB2B },
+                });
               }}
             >
               CHECK OUT
             </button>
 
             <button
-              onClick={downloadPDF}
+              onClick={() => {
+                const input = invoiceRef.current;
+                if (!input) return;
+                html2canvas(input, { scale: 2, useCORS: true }).then((canvas) => {
+                  const imgData = canvas.toDataURL("image/png");
+                  const pdf = new jsPDF("p", "mm", "a4");
+                  const pageWidth = pdf.internal.pageSize.getWidth();
+                  const ratio = pageWidth / canvas.width;
+                  pdf.addImage(
+                    imgData,
+                    "PNG",
+                    0,
+                    10,
+                    pageWidth,
+                    canvas.height * ratio
+                  );
+                  pdf.save("Invoice_Test.pdf");
+                });
+              }}
               disabled={!actualData.length}
               className="mt-4 w-full py-3 rounded bg-black text-white hover:opacity-90 disabled:opacity-40 cursor-pointer"
             >
@@ -437,9 +412,61 @@ const Cart = () => {
         </div>
       </div>
 
-      {/* Hidden invoice */}
+      {/* Hidden Invoice */}
       <div ref={invoiceRef} style={{ display: "block" }}>
-        <InvoiceDucoTailwind data={invoiceData} />
+        <InvoiceDucoTailwind
+          data={{
+            company: {
+              name: "DUCO ART PRIVATE LIMITED",
+              address: "123 Teen Murti Marg, New Delhi, India",
+              gstin: "22AAICD1719N1ZM",
+              email: "support@ducoart.com",
+            },
+            invoice: {
+              number: "TEST-" + Math.floor(Math.random() * 10000),
+              date: new Date().toLocaleDateString(),
+              placeOfSupply: address?.state || "Delhi",
+              copyType: "Original Copy",
+            },
+            billTo: {
+              name: user?.name || "Guest User",
+              address: address?.full || "Not provided",
+              phone: user?.phone || "N/A",
+            },
+            items: actualData.map((item, idx) => {
+              const sizes = Object.entries(item.quantity || {})
+                .filter(([size, qty]) => qty > 0)
+                .map(([size, qty]) => `${size} × ${qty}`)
+                .join(", ");
+              return {
+                sno: idx + 1,
+                description: `${item.name || "Product"}${
+                  sizes ? ` (Sizes: ${sizes})` : ""
+                }${item.color ? `, Color: ${item.color}` : ""}`,
+                qty: Object.values(item.quantity || {}).reduce(
+                  (a, b) => a + Number(b || 0),
+                  0
+                ),
+                unit: "Pcs.",
+                price: item.price,
+              };
+            }),
+            charges: { pf: pfTotal, printing: printTotal },
+            tax: {
+              cgstRate: gstPercent / 2,
+              sgstRate: gstPercent / 2,
+              cgstAmount: gstTotal / 2,
+              sgstAmount: gstTotal / 2,
+            },
+            terms: [
+              "Thank you for shopping with DucoArt!",
+              "Goods once sold will not be taken back.",
+            ],
+            forCompany: "DUCO ART PRIVATE LIMITED",
+            subtotal,
+            total: grandTotal,
+          }}
+        />
       </div>
     </div>
   );
