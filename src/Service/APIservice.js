@@ -154,7 +154,7 @@ export async function completeOrder(paymentId, paymentmode, orderData) {
 
   try {
     const res = await axios.post(
-      `${API_BASE}api/completeorder`,
+      `${API_BASE}api/completedorder`,
       { paymentId, paymentmode, orderData },
       {
         headers: { "Content-Type": "application/json" },

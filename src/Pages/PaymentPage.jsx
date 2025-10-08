@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import PaymentButton from "../Components/PaymentButton";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import NetbankingPanel from "../Components/NetbankingPanel.jsx";
 import { completeOrder } from "../Service/APIservice"; // ✅ new import
+import { useCart } from "../ContextAPI/CartContext.jsx";
 
 const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -11,8 +12,37 @@ const PaymentPage = () => {
   const [netbankingType, setNetbankingType] = useState("");
   const locations = useLocation();
   const navigate = useNavigate();
+  const { cart } = useCart();
+
+  const [cartLoaded, setCartLoaded] = useState(false);
+
+  useEffect(() => {
+    const savedCart = JSON.parse(localStorage.getItem("cart"));
+    if (savedCart && savedCart.length > 0) {
+      console.log("🛒 Using localStorage cart as fallback:", savedCart);
+    }
+    setCartLoaded(true);
+  }, []);
 
   const orderpayload = locations.state || {};
+
+  // ✅ DEBUG: Log order payload on load
+  useEffect(() => {
+    if (!orderpayload) return;
+
+    console.group("🧾 AUTO ORDER PAYLOAD PREVIEW");
+    console.log("📦 Full order payload that will be sent to backend:");
+    console.log(JSON.stringify(orderpayload, null, 2));
+
+    const summary = {
+      user: orderpayload?.user?._id || "❌ Missing",
+      address: orderpayload?.address?.fullName || "❌ Missing",
+      itemCount: orderpayload?.items?.length || 0,
+      totalPay: orderpayload?.totalPay || 0,
+    };
+    console.table(summary);
+    console.groupEnd();
+  }, [orderpayload]);
 
   // ✅ Ensure email present (backend requires)
   if (orderpayload?.address && !orderpayload.address.email) {
@@ -35,7 +65,11 @@ const PaymentPage = () => {
 
     try {
       if (paymentMethod === "netbanking") {
-        const res = await completeOrder("manual_payment", "netbanking", orderpayload);
+        const res = await completeOrder(
+          "manual_payment",
+          "netbanking",
+          orderpayload
+        );
         toast.success("✅ Order placed successfully!");
         navigate("/order-success", { state: { order: res.order } });
       } else if (paymentMethod === "50%") {
@@ -133,10 +167,138 @@ const PaymentPage = () => {
             </>
           )}
 
-          {/* ✅ For online → Razorpay PayNow button */}
           {showPayNow && paymentMethod === "online" && (
-            <div className="mt-6">
-              <PaymentButton orderData={orderpayload} />
+            <div className="mt-6 space-y-3">
+              {/* 🔍 PREVIEW PAYLOAD BUTTON */}
+              {import.meta.env.MODE !== "production" && (
+                <button
+                  onClick={() => {
+                    console.group("🧾 ORDER PAYLOAD PREVIEW BEFORE PAYMENT");
+
+                    console.log("🔹 paymentmode:", paymentMethod);
+                    console.log(
+                      "🔹 Will be sent to backend after payment success:"
+                    );
+
+                    // ✅ Use live cart if available
+                    const localCart =
+                      JSON.parse(localStorage.getItem("cart")) || [];
+                    const itemsSource =
+                      cart?.length > 0
+                        ? cart
+                        : localCart.length > 0
+                        ? localCart
+                        : orderpayload?.items || [];
+
+                    console.log(
+                      "🧩 Using items from:",
+                      cart?.length > 0
+                        ? "CartContext"
+                        : localCart.length > 0
+                        ? "LocalStorage"
+                        : "orderpayload.state"
+                    );
+
+                    const orderPayload = {
+                      items: itemsSource.map((item, idx) => {
+                        const missing = [];
+
+                        if (!item.printroveProductId)
+                          missing.push("printroveProductId");
+                        if (!item.printroveVariantId)
+                          missing.push("printroveVariantId");
+                        if (!item.previewImages?.front)
+                          missing.push("previewImages.front");
+
+                        if (missing.length > 0) {
+                          console.warn(
+                            `⚠️ Item ${idx + 1}: Missing ${missing.join(", ")}`
+                          );
+                        }
+
+                        return {
+                          id: item.id,
+                          productId: item.productId || item._id,
+                          name:
+                            item.products_name || item.name || "Custom T-shirt",
+                          printroveProductId: item.printroveProductId || null,
+                          printroveVariantId: item.printroveVariantId || null,
+                          color: item.color,
+                          colortext: item.colortext,
+                          gender: item.gender,
+                          price: item.price,
+                          quantity: item.quantity,
+                          previewImages: {
+                            front: item.previewImages?.front || null,
+                            back: item.previewImages?.back || null,
+                            left: item.previewImages?.left || null,
+                            right: item.previewImages?.right || null,
+                          },
+                          design: item.design || {},
+                        };
+                      }),
+
+                      address: {
+                        name: orderpayload?.address?.fullName || "Unknown",
+                        phone: orderpayload?.address?.phone || "",
+                        email: orderpayload?.address?.email || "",
+                        street: orderpayload?.address?.street || "",
+                        city: orderpayload?.address?.city || "",
+                        state: orderpayload?.address?.state || "",
+                        postalCode: orderpayload?.address?.pincode || "",
+                        country: orderpayload?.address?.country || "India",
+                        houseNumber:
+                          orderpayload?.address?.houseNumber || "N/A",
+                      },
+
+                      user: orderpayload?.user || {},
+                      paymentmode: paymentMethod || "online",
+                      totalPay: orderpayload?.totalPay || 0,
+                    };
+
+                    console.log(JSON.stringify(orderPayload, null, 2));
+
+                    const issues = [];
+                    orderPayload.items.forEach((item, idx) => {
+                      if (!item.printroveProductId)
+                        issues.push(
+                          `❌ Item ${idx + 1}: Missing printroveProductId`
+                        );
+                      if (!item.printroveVariantId)
+                        issues.push(
+                          `❌ Item ${idx + 1}: Missing printroveVariantId`
+                        );
+                      if (!item.previewImages?.front)
+                        issues.push(
+                          `⚠️ Item ${idx + 1}: Missing previewImages.front`
+                        );
+                    });
+
+                    if (issues.length > 0) {
+                      console.warn("⚠️ Found issues:", issues);
+                      alert(
+                        `⚠️ ${issues.length} issue(s) found. Check console.`
+                      );
+                    } else {
+                      console.log("✅ All required fields look good!");
+                      alert("✅ Everything looks perfect!");
+                    }
+
+                    console.groupEnd();
+                  }}
+                  className="w-full py-2 px-4 bg-gray-700 text-white rounded-lg hover:bg-gray-800 font-semibold"
+                >
+                  Preview Order Payload (Console)
+                </button>
+              )}
+
+              {/* 🧾 ACTUAL PAYMENT BUTTON */}
+              <PaymentButton
+                orderData={{
+                  ...orderpayload,
+                  items: cart?.length > 0 ? cart : orderpayload?.items || [],
+                }}
+              />
             </div>
           )}
 

@@ -50,39 +50,61 @@ const OrderProcessing = () => {
 
     const completeOrder = async () => {
       try {
-        console.log("🔄 Sending order completion request:", {
+        console.group("🧾 ORDER COMPLETION DEBUG");
+
+        // 🔹 Step 1: Log what’s being sent
+        console.log(
+          "🔄 Sending to Backend URL:",
+          `${API_BASE}api/completedorder`
+        );
+        console.log("📦 Full Payload:", {
           paymentId,
           paymentmode,
-          items: orderData?.items?.length || 0,
-          totalPay: orderData?.totalPay,
+          orderData,
         });
 
+        // 🔹 Step 2: Verify orderData essentials before sending
+        if (!orderData?.items || !orderData?.address || !orderData?.user) {
+          console.error("❌ Missing essential order data fields!");
+          toast.error("Invalid order data. Redirecting...");
+          navigate("/payment", { replace: true });
+          return;
+        }
+
+        // 🔹 Step 3: Send request to backend
         const response = await axios.post(`${API_BASE}api/completedorder`, {
           paymentId,
-          orderData,
           paymentmode,
+          orderData,
         });
 
-        const data = response?.data;
-        console.log("✅ Order completion response:", data);
+        // 🔹 Step 4: Log backend response
+        console.log("✅ Backend Response:", response.data);
 
+        const data = response?.data;
         if (data?.success) {
+          console.log(
+            "🎯 Backend confirmed success. Order details:",
+            data.order
+          );
           const orderId =
             data?.order?._id || data?.orderId || orderData?.id || "UNKNOWN";
           toast.success("✅ Order completed successfully!");
           navigate(`/order-success/${orderId}`, { replace: true });
         } else {
+          console.warn("⚠️ Backend returned error:", data?.message);
           toast.error(data?.message || "❌ Order failed. Please try again.");
           navigate("/payment", { replace: true });
         }
-      } catch (error) {
-        console.error("❌ Order processing error:", error);
 
+        console.groupEnd();
+      } catch (error) {
+        console.groupEnd();
+        console.error("❌ Order processing error:", error);
         const errMsg =
           error.response?.data?.message ||
           error.message ||
           "Something went wrong. Please try again.";
-
         toast.error(errMsg);
         navigate("/payment", { replace: true });
       }

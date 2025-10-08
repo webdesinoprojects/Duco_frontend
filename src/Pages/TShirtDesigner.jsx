@@ -71,14 +71,14 @@ const TshirtDesigner = () => {
 
   // ✅ get passed size quantities from ProductPage
   const location = useLocation();
- const passedQuantity = location.state?.quantity || {
-  S: 0,
-  M: 1,
-  L: 0,
-  XL: 0,
-  "2XL": 0,
-  "3XL": 0,
-};
+  const passedQuantity = location.state?.quantity || {
+    S: 0,
+    M: 1,
+    L: 0,
+    XL: 0,
+    "2XL": 0,
+    "3XL": 0,
+  };
 
   const defaultSideState = (view) => {
     let defaultTextPos = { x: 50, y: 100 };
@@ -248,41 +248,94 @@ const TshirtDesigner = () => {
         images[view] = dataUrl;
       }
 
-      await createDesign({
-        productId: proid,
-        color: colorWithHash,
-        designs: allDesigns,
-        previewImages: images,
-      });
+      // ✅ Identify logged-in user (adjust according to your app’s auth flow)
+      const userData = JSON.parse(localStorage.getItem("user")) || {};
+      const userId =
+        userData?._id || userData?.id || "66bff9df5e3a9d0d8d70b5f2"; // fallback test id
+
+      // ✅ Prepare design payload as backend expects
+      const designPayload = {
+        user: userId,
+        products: productDetails?._id || proid,
+        cutomerprodcuts: productDetails?.products_name || "Custom Product",
+        design: [
+          {
+            front: allDesigns.front,
+            back: allDesigns.back,
+            left: allDesigns.left,
+            right: allDesigns.right,
+            previewImages: images,
+            color: colorWithHash,
+          },
+        ],
+      };
+
+      console.log("🎨 Sending Design Payload:", designPayload);
+
+      await createDesign(designPayload);
 
       // ✅ Clean size object if needed
-     // ✅ clean up size object so only nonzero sizes remain
-const cleanedQuantities = Object.fromEntries(
-  Object.entries(passedQuantity || {}).map(([k, v]) => [k, Number(v) || 0])
-);
-const finalQuantities = Object.fromEntries(
-  Object.entries(cleanedQuantities).filter(([_, v]) => v > 0)
-);
+      // ✅ clean up size object so only nonzero sizes remain
+      // ✅ Clean up quantities
+      const cleanedQuantities = Object.fromEntries(
+        Object.entries(passedQuantity || {}).map(([k, v]) => [
+          k,
+          Number(v) || 0,
+        ])
+      );
+      const finalQuantities = Object.fromEntries(
+        Object.entries(cleanedQuantities).filter(([_, v]) => v > 0)
+      );
+      // ✅ Extract Printrove IDs from productDetails safely
+      const printroveProductId =
+        productDetails?.printroveProductId ||
+        productDetails?.product_mapping?.printrove_id ||
+        productDetails?.printrove_id ||
+        null;
 
-const customProduct = {
-  id: `custom-tshirt-${Date.now()}`,
-  productId: productDetails?._id || proid,
-  name: productDetails?.products_name || "Custom T-Shirt",
-  design: allDesigns,
-  previewImages: images,
-  color: colorWithHash,
-  colortext: productDetails?.colortext || "Custom",
-  gender: productDetails?.gender || "Unisex",
-  price: Math.round(productDetails?.pricing?.[0]?.price_per || 499),
-  quantity: finalQuantities || { M: 1 }, // ✅ use actual passed quantities
-};
+      const printroveVariantId =
+        productDetails?.printroveVariantId ||
+        productDetails?.variant_mapping?.[0]?.printrove_variant_id ||
+        productDetails?.printrove_variant_id ||
+        null;
 
+      // ✅ Validate IDs before proceeding
+      if (!printroveProductId || !printroveVariantId) {
+        console.error(
+          "❌ Missing Printrove IDs in productDetails:",
+          productDetails
+        );
+        alert(
+          "Missing Printrove IDs — product not properly mapped for Printrove."
+        );
+        setIsSaving(false);
+        return;
+      }
 
+      // ✅ Build final product object for cart
+      const customProduct = {
+        id: `custom-tshirt-${Date.now()}`,
+        productId: productDetails?._id || proid,
+        products_name: productDetails?.products_name || "Custom T-Shirt",
+        name: productDetails?.products_name || "Custom T-Shirt",
+        printroveProductId,
+        printroveVariantId,
+        design: {
+          ...allDesigns,
+          frontImage: images.front,
+          backImage: images.back,
+        },
+        previewImages: images,
+        color: colorWithHash,
+        colortext: productDetails?.colortext || "Custom",
+        gender: productDetails?.gender || "Unisex",
+        price: Math.round(productDetails?.pricing?.[0]?.price_per || 499),
+        quantity: finalQuantities || { M: 1 },
+      };
 
+      // ✅ Final validation before adding to cart
       console.log("🧾 Adding custom product to cart:", customProduct);
-
       addToCart(customProduct);
-
       alert("Design saved and added to cart!");
       navigate("/cart");
     } catch (error) {
@@ -318,7 +371,9 @@ const customProduct = {
           Upload Additional CDR Files
         </h3>
         <label className="flex flex-col items-center px-4 py-3 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 hover:bg-gray-100 cursor-pointer transition-all">
-          <span className="text-xs text-gray-600">Click to select CDR files</span>
+          <span className="text-xs text-gray-600">
+            Click to select CDR files
+          </span>
           <input
             type="file"
             multiple
@@ -387,18 +442,14 @@ const customProduct = {
           <input
             type="color"
             value={allDesigns[side].textColor}
-            onChange={(e) =>
-              updateCurrentDesign("textColor", e.target.value)
-            }
+            onChange={(e) => updateCurrentDesign("textColor", e.target.value)}
             className="w-10 h-10 rounded-full cursor-pointer"
           />
         </div>
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-gray-800 mb-2">
-          Font Style
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-800 mb-2">Font Style</h3>
         <select
           onChange={(e) => updateCurrentDesign("font", e.target.value)}
           value={allDesigns[side].font}
@@ -440,8 +491,12 @@ const customProduct = {
                 src={design.uploadedImage}
                 alt="Uploaded"
                 style={{
-                  width: `${isMobile ? design.imageSize * 0.7 : design.imageSize}px`,
-                  height: `${isMobile ? design.imageSize * 0.7 : design.imageSize}px`,
+                  width: `${
+                    isMobile ? design.imageSize * 0.7 : design.imageSize
+                  }px`,
+                  height: `${
+                    isMobile ? design.imageSize * 0.7 : design.imageSize
+                  }px`,
                 }}
                 className="object-contain touch-none"
               />
@@ -455,7 +510,9 @@ const customProduct = {
               <p
                 className={`select-none ${design.font} font-semibold touch-none`}
                 style={{
-                  fontSize: `${isMobile ? design.textSize * 0.8 : design.textSize}px`,
+                  fontSize: `${
+                    isMobile ? design.textSize * 0.8 : design.textSize
+                  }px`,
                   color: design.textColor,
                   whiteSpace: "nowrap",
                 }}

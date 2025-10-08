@@ -1,24 +1,33 @@
-import React, { createContext, useState, useEffect, useContext } from "react"; // ✅ added useContext here
+import React, { createContext, useState, useEffect, useContext } from "react";
 
 export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Load cart from localStorage when component mounts
+  // ✅ Load from localStorage on mount
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart"));
-    if (savedCart) {
+    try {
+      const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
       setCart(savedCart);
+      console.log("🧩 Cart loaded from localStorage:", savedCart);
+    } catch (err) {
+      console.warn("⚠️ Failed to parse localStorage cart:", err);
+      localStorage.removeItem("cart");
+    } finally {
+      setHydrated(true);
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // ✅ Save to localStorage only after hydration
   useEffect(() => {
-    console.log("🛒 Cart updated:", cart); // ✅ log full cart every time it changes
+    if (!hydrated) return;
     localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+    console.log("🛒 Cart updated:", cart);
+  }, [cart, hydrated]);
 
+  // ✅ Merge size quantities safely
   const mergeQuantities = (oldQty, newQty) => {
     const merged = { ...oldQty };
     for (let size in newQty) {
@@ -27,86 +36,55 @@ export const CartProvider = ({ children }) => {
     return merged;
   };
 
+  // ✅ Add product (preserves all fields)
   const addToCart = (product) => {
-    const {
-      id,
-      design,
-      quantity = { S: 0, M: 0, L: 0, XL: 0, "2XL": 0, "3XL": 0 },
-      color = "#ffffff",
-      price = 0,
-      colortext = "white",
-      gender = "Male",
-      name,
-      products_name,
-      image_url,
-      previewImages,
-      productId,
-      description,
-    } = product;
+    if (!product) return console.error("❌ Invalid product to add:", product);
 
     const exists = cart.find(
       (item) =>
-        item.id === id &&
-        item.color === color &&
-        JSON.stringify(item.design) === JSON.stringify(design) &&
-        item.colortext === colortext &&
-        item.gender === gender
+        item.id === product.id &&
+        item.color === product.color &&
+        JSON.stringify(item.design) === JSON.stringify(product.design)
     );
 
     if (exists) {
-      setCart((prevCart) =>
-        prevCart.map((item) =>
-          item.id === id &&
-          item.color === color &&
-          JSON.stringify(item.design) === JSON.stringify(design) &&
-          item.colortext === colortext &&
-          item.gender === gender
-            ? { ...item, quantity: mergeQuantities(item.quantity, quantity) }
+      // merge qty
+      setCart((prev) =>
+        prev.map((item) =>
+          item.id === product.id && item.color === product.color
+            ? {
+                ...item,
+                quantity: mergeQuantities(item.quantity, product.quantity),
+              }
             : item
         )
       );
     } else {
-      const data = {
-        id,
-        design,
-        color,
-        quantity,
-        price,
-        colortext,
-        gender,
-        name,
-        products_name,
-        image_url,
-        previewImages,
-        productId,
-        description,
+      const finalData = {
+        ...product,
+        printroveProductId: product.printroveProductId || null,
+        printroveVariantId: product.printroveVariantId || null,
       };
-      setCart((prevCart) => [...prevCart, data]);
+
+      console.log("🧾 Added to cart:", finalData);
+      if (!finalData.printroveProductId || !finalData.printroveVariantId) {
+        console.warn("⚠️ Missing Printrove IDs in cart item:", finalData);
+      }
+
+      setCart((prev) => [...prev, finalData]);
     }
   };
 
-  const removeFromCart = (id, quantity, color = null, design = null) => {
-    setCart((prevCart) =>
-      prevCart.filter((item) => {
-        if (quantity && color && design) {
-          return !(
-            item.id === id &&
-            item.color === color &&
-            item.design === design
-          );
-        }
-        return item.id !== id;
-      })
-    );
+  const removeFromCart = (id) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // Clear all items
   const clearCart = () => {
     setCart([]);
+    localStorage.removeItem("cart");
   };
 
-  // Example updateQuantity inside CartContext
-  function updateQuantity(productId, sizeQty) {
+  const updateQuantity = (productId, sizeQty) => {
     setCart((prev) =>
       prev.map((item) =>
         item.id === productId || item._id === productId
@@ -114,12 +92,13 @@ export const CartProvider = ({ children }) => {
           : item
       )
     );
-  }
+  };
 
   return (
     <CartContext.Provider
       value={{
         cart,
+        hydrated,
         addToCart,
         removeFromCart,
         clearCart,
@@ -131,5 +110,4 @@ export const CartProvider = ({ children }) => {
   );
 };
 
-// ✅ custom hook (now works since useContext is imported)
 export const useCart = () => useContext(CartContext);
