@@ -22,7 +22,8 @@ const ProductsUpdate = () => {
     }],
     pricing: [{ quantity: '', price_per: '', discount: 0 }],
     Desciptions: [''],
-    subcategory: ''
+    subcategory: '',
+    isCorporate: false, // ✅ new field added here too
   });
 
   useEffect(() => {
@@ -254,6 +255,20 @@ const ProductsUpdate = () => {
                 <option key={cat._id} value={cat._id}>{cat.subcatogry}</option>
               ))}
             </select>
+
+            {/* 🟢 Corporate Product Toggle */}
+            <div className="flex items-center gap-2 mt-4">
+              <input
+                type="checkbox"
+                id="isCorporate"
+                checked={formData.isCorporate}
+                onChange={(e) => setFormData({ ...formData, isCorporate: e.target.checked })}
+                className="w-4 h-4 accent-blue-600"
+              />
+              <label htmlFor="isCorporate" className="text-gray-800 text-sm">
+                Mark as Corporate Product (B2B)
+              </label>
+            </div>
           </>
         )}
 
@@ -262,6 +277,8 @@ const ProductsUpdate = () => {
             <h3 className="text-xl font-semibold mb-3 text-gray-800">🧾 Review Your Product</h3>
             <div className="bg-gray-50 p-4 rounded space-y-3 text-sm">
               <p><strong>Name:</strong> {formData.products_name}</p>
+              <p><strong>Corporate:</strong> {formData.isCorporate ? "✅ Yes (B2B)" : "❌ No (B2C)"}</p>
+              <p><strong>Subcategory:</strong> {formData.subcategory}</p>
               <p><strong>Images:</strong></p>
               {formData.image_url.map((img, i) => (
                 <div key={i} className="ml-4">
@@ -284,7 +301,6 @@ const ProductsUpdate = () => {
               {formData.Desciptions.map((d, i) => (
                 <p key={i}>• {d}</p>
               ))}
-              <p><strong>Subcategory:</strong> {formData.subcategory}</p>
             </div>
           </>
         )}

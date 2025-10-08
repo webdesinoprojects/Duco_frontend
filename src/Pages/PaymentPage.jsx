@@ -3,7 +3,7 @@ import PaymentButton from "../Components/PaymentButton";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import NetbankingPanel from "../Components/NetbankingPanel.jsx";
-import { completeOrder } from "../Service/APIservice"; // ✅ new import
+import { completeOrder } from "../Service/APIservice";
 
 const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -13,6 +13,10 @@ const PaymentPage = () => {
   const navigate = useNavigate();
 
   const orderpayload = locations.state || {};
+  const { paymentOptions = ["Pay Online"], isB2B = false } = orderpayload; // ✅ from Cart.jsx
+
+  console.log("💳 Payment options received:", paymentOptions);
+  console.log("🏢 Order Type:", isB2B ? "B2B Corporate" : "B2C Retail");
 
   // ✅ Ensure email present (backend requires)
   if (orderpayload?.address && !orderpayload.address.email) {
@@ -23,10 +27,11 @@ const PaymentPage = () => {
   // ✅ When selecting method
   const handlePaymentChange = (method) => {
     setPaymentMethod(method);
-    setShowPayNow(method === "online" || method === "50%");
+    // For Pay Online, trigger Razorpay button
+    setShowPayNow(method === "Pay Online" || method === "online" || method === "50%");
   };
 
-  // ✅ Handle Netbanking & 50% payment order creation
+  // ✅ Handle Manual (non-Razorpay) payments
   const handleSubmit = async () => {
     if (!paymentMethod) {
       toast.error("Please select a payment method");
@@ -34,16 +39,18 @@ const PaymentPage = () => {
     }
 
     try {
-      if (paymentMethod === "netbanking") {
+      if (paymentMethod === "Netbanking") {
         const res = await completeOrder("manual_payment", "netbanking", orderpayload);
-        toast.success("✅ Order placed successfully!");
+        toast.success("✅ Order placed successfully via Netbanking!");
         navigate("/order-success", { state: { order: res.order } });
-      } else if (paymentMethod === "50%") {
+      } else if (paymentMethod === "Pickup from Store") {
+        const res = await completeOrder("manual_payment", "pickup", orderpayload);
+        toast.success("🏬 Pickup order confirmed successfully!");
+        navigate("/order-success", { state: { order: res.order } });
+      } else if (paymentMethod === "50%" || paymentMethod === "half_payment") {
         const res = await completeOrder("half_payment", "50%", orderpayload);
-        toast.success("✅ 50% order placed successfully!");
+        toast.success("✅ 50% advance order placed successfully!");
         navigate("/order-success", { state: { order: res.order } });
-      } else if (paymentMethod === "") {
-        toast.error("Please select a payment method");
       }
     } catch (err) {
       console.error("Order creation failed:", err);
@@ -51,7 +58,7 @@ const PaymentPage = () => {
     }
   };
 
-  // ✅ detect bulk order
+  // ✅ detect bulk order (still supported)
   const isBulkOrder = useMemo(() => {
     const items = orderpayload?.items ?? [];
     return items.some((item) =>
@@ -67,104 +74,76 @@ const PaymentPage = () => {
         </h1>
 
         <div className="space-y-4">
-          {/* ✅ Online payment (Razorpay full) */}
-          <div>
-            <label className="flex items-center text-lg text-[#0A0A0A]">
-              <input
-                type="radio"
-                name="paymentMethod"
-                value="online"
-                checked={paymentMethod === "online"}
-                onChange={() => handlePaymentChange("online")}
-                className="mr-2"
-              />
-              Pay Online
-            </label>
-          </div>
+          {/* 💡 Render dynamically based on paymentOptions array */}
+          {paymentOptions.map((option) => (
+            <div key={option}>
+              <label className="flex items-start gap-3 text-lg text-[#0A0A0A]">
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value={option}
+                  checked={paymentMethod === option}
+                  onChange={() => handlePaymentChange(option)}
+                  className="mt-1"
+                />
+                <div className="w-full">
+                  <span className="font-semibold">{option}</span>
 
-          {/* ✅ Bulk orders → allow 50% and Netbanking */}
-          {isBulkOrder && (
-            <>
-              <div>
-                <label className="flex items-center text-lg text-[#0A0A0A]">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="50%"
-                    checked={paymentMethod === "50%"}
-                    onChange={() => handlePaymentChange("50%")}
-                    className="mr-2"
-                  />
-                  50% Pay Online
-                </label>
-              </div>
-
-              <div>
-                <label className="flex items-start gap-3 text-lg text-[#0A0A0A]">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="netbanking"
-                    checked={paymentMethod === "netbanking"}
-                    onChange={() => handlePaymentChange("netbanking")}
-                    className="mt-1"
-                  />
-                  <div className="w-full">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <span className="font-semibold">Netbanking</span>
+                  {/* For Netbanking → show details */}
+                  {option === "Netbanking" && paymentMethod === "Netbanking" && (
+                    <div className="mt-3">
                       <select
                         value={netbankingType}
                         onChange={(e) => setNetbankingType(e.target.value)}
-                        className="sm:ml-3 rounded-lg border border-gray-300 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5C870]"
-                        disabled={paymentMethod !== "netbanking"}
+                        className="rounded-lg border border-gray-300 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5C870]"
                       >
                         <option value="upi">UPI</option>
                         <option value="bank">Account Details</option>
                       </select>
+
+                      <NetbankingPanel
+                        paymentMethod={paymentMethod}
+                        netbankingType={netbankingType}
+                      />
                     </div>
+                  )}
+                </div>
+              </label>
+            </div>
+          ))}
 
-                    <NetbankingPanel
-                      paymentMethod={paymentMethod}
-                      netbankingType={netbankingType}
-                    />
-                  </div>
-                </label>
-              </div>
-            </>
-          )}
-
-          {/* ✅ For online → Razorpay PayNow button */}
-          {showPayNow && paymentMethod === "online" && (
+          {/* 🟡 Razorpay Pay Online Button */}
+          {showPayNow && paymentMethod === "Pay Online" && (
             <div className="mt-6">
               <PaymentButton orderData={orderpayload} />
             </div>
           )}
 
-          {/* ✅ For 50% and Netbanking → Continue button (non-Razorpay flow) */}
-          {!showPayNow && paymentMethod === "netbanking" && (
-            <button
-              onClick={handleSubmit}
-              className="w-full mt-6 py-2 px-4 bg-[#E5C870] text-black rounded-lg hover:bg-[#D4B752] font-semibold"
-            >
-              Continue
-            </button>
-          )}
+          {/* 🟢 For Netbanking and Pickup and 50% advance → Continue button */}
+          {!showPayNow &&
+            (paymentMethod === "Netbanking" ||
+              paymentMethod === "Pickup from Store" ||
+              paymentMethod === "50%") && (
+              <button
+                onClick={handleSubmit}
+                className="w-full mt-6 py-2 px-4 bg-[#E5C870] text-black rounded-lg hover:bg-[#D4B752] font-semibold"
+              >
+                Continue
+              </button>
+            )}
+        </div>
 
-          {!showPayNow && paymentMethod === "50%" && (
-            <button
-              onClick={handleSubmit}
-              className="w-full mt-6 py-2 px-4 bg-[#E5C870] text-black rounded-lg hover:bg-[#D4B752] font-semibold"
-            >
-              Continue
-            </button>
-          )}
+        {/* ⚙️ Debug Info */}
+        <div className="mt-8 p-3 bg-gray-50 border rounded text-sm text-gray-700">
+          <div>Order Type: {isB2B ? "Corporate (B2B)" : "Retail (B2C)"}</div>
+          <div>Available Options: {paymentOptions.join(", ")}</div>
         </div>
       </div>
     </div>
   );
 };
 
-// Optional: Reusable Row Components
+// Optional reusable rows (unchanged)
 function DetailRow({ label, value, canCopy }) {
   const copy = () => navigator.clipboard.writeText(value);
   return (

@@ -31,6 +31,7 @@ function QuantityChips({ quantity }) {
 const OrderDetailsCard = ({ orderId }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [allProducts, setAllProducts] = useState([]); // ✅ store all products
 
   const statusOptions = [
     "Pending",
@@ -73,6 +74,7 @@ const OrderDetailsCard = ({ orderId }) => {
     }
   };
 
+  // ✅ Fetch order
   useEffect(() => {
     (async () => {
       try {
@@ -90,6 +92,20 @@ const OrderDetailsCard = ({ orderId }) => {
       }
     })();
   }, [orderId]);
+
+  // ✅ Fetch all products (for fallback images)
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("https://duco-backend.onrender.com/api/products");
+        const data = await res.json();
+        if (Array.isArray(data)) setAllProducts(data);
+      } catch (err) {
+        console.error("❌ Failed to fetch product list", err);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   if (loading) return <div className="p-4 text-center">Loading...</div>;
   if (!order) return <div className="p-4 text-center">Order not found</div>;
@@ -180,10 +196,6 @@ const OrderDetailsCard = ({ orderId }) => {
               item?.customDesign ||
               {};
 
-            // 🪵 Debug logs for design data
-            console.log(`🎨 Item ${index} design:`, design);
-
-            // ✅ Fix — detect all naming possibilities
             const possibleViews = {
               front:
                 design.frontView ||
@@ -205,21 +217,68 @@ const OrderDetailsCard = ({ orderId }) => {
                 (design.right?.uploadedImage ?? null),
             };
 
-            console.log("🖼️ Detected Views:", possibleViews);
-
             return (
               <div key={index} className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-start gap-4">
+                  {/* ✅ Image Display (Designer + Regular fallback) */}
                   <div className="w-20 h-20 bg-white rounded border border-gray-200 overflow-hidden flex items-center justify-center">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-xs text-gray-400">No image</div>
-                    )}
+                    {(() => {
+                      // 🔍 Step 1: find product if not attached
+                      const product =
+                        item.product ||
+                        allProducts.find(
+                          (p) =>
+                            p._id === item.productId ||
+                            p._id === item.product_id ||
+                            p._id === item.id ||
+                            p.slug === item.slug ||
+                            p.products_name?.trim()?.toLowerCase() ===
+                              item.name?.trim()?.toLowerCase()
+                        );
+
+                      // 🔍 Step 2: match color variant
+                      const variants = product?.image_url || [];
+                      const colorKey =
+                        item.color?.toLowerCase?.() ||
+                        item.colortext?.toLowerCase?.() ||
+                        "";
+                      const matched =
+                        variants.find(
+                          (v) =>
+                            v.colorcode?.toLowerCase?.() === colorKey ||
+                            v.colortext?.toLowerCase?.() === colorKey ||
+                            v.colorname?.toLowerCase?.() === colorKey
+                        ) || variants[0];
+
+                      // 🔍 Step 3: choose image source
+                      const imgSrc =
+                        item.image ||
+                        item.previewImages?.front ||
+                        item.design?.frontView ||
+                        matched?.designtshirt?.[0] ||
+                        matched?.image_url?.[0] ||
+                        matched?.img_url?.[0] ||
+                        product?.images?.[0] ||
+                        product?.image_url?.[0]?.image_url; // ✅ fallback for flat image_url array
+
+                      console.log("🧩 Final Image Picked:", {
+                        name: item.name,
+                        productFound: !!product,
+                        colorKey,
+                        matched,
+                        imgSrc,
+                      });
+
+                      return imgSrc ? (
+                        <img
+                          src={imgSrc}
+                          alt={item.name || "T-Shirt"}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-xs text-gray-400">No image</div>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -294,23 +353,27 @@ const OrderDetailsCard = ({ orderId }) => {
                 )}
 
                 {/* ✅ Uploaded Logo + Extra Files */}
-                <div className="mt-3 space-y-1">
+                <div className="mt-3 space-y-2">
                   {(design.uploadedLogo || design.uploaded_logo) && (
-                    <p className="text-xs">
-                      Logo File:{" "}
+                    <div className="text-xs">
+                      <p className="font-medium text-gray-800">Uploaded Logo:</p>
                       <a
                         href={design.uploadedLogo || design.uploaded_logo}
                         target="_blank"
-                        className="text-blue-600 underline"
+                        rel="noreferrer"
+                        className="text-blue-600 hover:underline"
                       >
                         View Logo
                       </a>
-                    </p>
+                    </div>
                   )}
+
                   {Array.isArray(design.extraFiles) &&
                     design.extraFiles.length > 0 && (
                       <div className="text-xs">
-                        <p className="font-medium">Extra Files:</p>
+                        <p className="font-medium text-gray-800">
+                          Additional Files:
+                        </p>
                         <ul className="list-disc pl-4">
                           {design.extraFiles.map((f, i) => (
                             <li key={i}>

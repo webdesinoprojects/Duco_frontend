@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from "react"; // ✅ added useContext here
+import React, { createContext, useState, useEffect, useContext } from "react";
 
 export const CartContext = createContext();
 
@@ -15,7 +15,7 @@ export const CartProvider = ({ children }) => {
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    console.log("🛒 Cart updated:", cart); // ✅ log full cart every time it changes
+    console.log("🛒 Cart updated:", cart);
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
@@ -100,13 +100,11 @@ export const CartProvider = ({ children }) => {
     );
   };
 
-  // Clear all items
   const clearCart = () => {
     setCart([]);
   };
 
-  // Example updateQuantity inside CartContext
-  function updateQuantity(productId, sizeQty) {
+  const updateQuantity = (productId, sizeQty) => {
     setCart((prev) =>
       prev.map((item) =>
         item.id === productId || item._id === productId
@@ -114,12 +112,13 @@ export const CartProvider = ({ children }) => {
           : item
       )
     );
-  }
+  };
 
   return (
     <CartContext.Provider
       value={{
         cart,
+        setCart, // ✅ added this line
         addToCart,
         removeFromCart,
         clearCart,
@@ -131,5 +130,5 @@ export const CartProvider = ({ children }) => {
   );
 };
 
-// ✅ custom hook (now works since useContext is imported)
+// ✅ custom hook
 export const useCart = () => useContext(CartContext);
