@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import NetbankingPanel from "../Components/NetbankingPanel.jsx";
 import { completeOrder } from "../Service/APIservice";
-import { CartContext } from "../ContextAPI/CartContext.jsx"; // ✅ fixed useCart import
+import { useCart } from "../ContextAPI/CartContext.jsx";
 
 const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -13,7 +13,7 @@ const PaymentPage = () => {
   const [showNetModal, setShowNetModal] = useState(false); // ✅ new modal state
   const locations = useLocation();
   const navigate = useNavigate();
-  const { cart } = useContext(CartContext) || { cart: [] };
+  const { cart } = useCart();
 
   const [cartLoaded, setCartLoaded] = useState(false);
 
@@ -151,23 +151,24 @@ const PaymentPage = () => {
                   <span className="font-semibold">{option}</span>
 
                   {/* For Netbanking */}
-                  {option === "Netbanking" && paymentMethod === "Netbanking" && (
-                    <div className="mt-3">
-                      <select
-                        value={netbankingType}
-                        onChange={(e) => setNetbankingType(e.target.value)}
-                        className="rounded-lg border border-gray-300 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5C870]"
-                      >
-                        <option value="upi">UPI</option>
-                        <option value="bank">Account Details</option>
-                      </select>
+                  {option === "Netbanking" &&
+                    paymentMethod === "Netbanking" && (
+                      <div className="mt-3">
+                        <select
+                          value={netbankingType}
+                          onChange={(e) => setNetbankingType(e.target.value)}
+                          className="rounded-lg border border-gray-300 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#E5C870]"
+                        >
+                          <option value="upi">UPI</option>
+                          <option value="bank">Account Details</option>
+                        </select>
 
-                      <NetbankingPanel
-                        paymentMethod={paymentMethod}
-                        netbankingType={netbankingType}
-                      />
-                    </div>
-                  )}
+                        <NetbankingPanel
+                          paymentMethod={paymentMethod}
+                          netbankingType={netbankingType}
+                        />
+                      </div>
+                    )}
                 </div>
               </label>
             </div>
@@ -211,10 +212,11 @@ const PaymentPage = () => {
                         if (!item.previewImages?.front)
                           missing.push("previewImages.front");
 
-                        if (missing.length > 0)
+                        if (missing.length > 0) {
                           console.warn(
                             `⚠ Item ${idx + 1}: Missing ${missing.join(", ")}`
                           );
+                        }
 
                         return {
                           id: item.id,
@@ -227,17 +229,61 @@ const PaymentPage = () => {
                           gender: item.gender,
                           price: item.price,
                           quantity: item.quantity,
-                          previewImages: item.previewImages || {},
+                          previewImages: {
+                            front: item.previewImages?.front || null,
+                            back: item.previewImages?.back || null,
+                            left: item.previewImages?.left || null,
+                            right: item.previewImages?.right || null,
+                          },
                           design: item.design || {},
                         };
                       }),
-                      address: orderpayload?.address || {},
+                      address: {
+                        name: orderpayload?.address?.fullName || "Unknown",
+                        phone: orderpayload?.address?.phone || "",
+                        email: orderpayload?.address?.email || "",
+                        street: orderpayload?.address?.street || "",
+                        city: orderpayload?.address?.city || "",
+                        state: orderpayload?.address?.state || "",
+                        postalCode: orderpayload?.address?.pincode || "",
+                        country: orderpayload?.address?.country || "India",
+                        houseNumber:
+                          orderpayload?.address?.houseNumber || "N/A",
+                      },
+
                       user: orderpayload?.user || {},
-                      paymentmode: paymentMethod,
+                      paymentmode: paymentMethod || "online",
                       totalPay: orderpayload?.totalPay || 0,
                     };
 
                     console.log(JSON.stringify(orderPayload, null, 2));
+
+                    const issues = [];
+                    orderPayload.items.forEach((item, idx) => {
+                      if (!item.printroveProductId)
+                        issues.push(
+                          `❌ Item ${idx + 1}: Missing printroveProductId`
+                        );
+                      if (!item.printroveVariantId)
+                        issues.push(
+                          `❌ Item ${idx + 1}: Missing printroveVariantId`
+                        );
+                      if (!item.previewImages?.front)
+                        issues.push(
+                          `⚠️ Item ${idx + 1}: Missing previewImages.front`
+                        );
+                    });
+
+                    if (issues.length > 0) {
+                      console.warn("⚠️ Found issues:", issues);
+                      alert(
+                        `⚠️ ${issues.length} issue(s) found. Check console.`
+                      );
+                    } else {
+                      console.log("✅ All required fields look good!");
+                      alert("✅ Everything looks perfect!");
+                    }
+
                     console.groupEnd();
                   }}
                   className="w-full py-2 px-4 bg-gray-700 text-white rounded-lg hover:bg-gray-800 font-semibold"
@@ -280,10 +326,12 @@ const PaymentPage = () => {
         {showNetModal && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-[90%] max-w-md text-center">
-              <h2 className="text-lg font-semibold mb-2">Confirm Netbanking Payment</h2>
+              <h2 className="text-lg font-semibold mb-2">
+                Confirm Netbanking Payment
+              </h2>
               <p className="text-sm text-gray-600 mb-4">
-                Please ensure your payment via {netbankingType.toUpperCase()} is complete. 
-                Once done, click below to confirm your order.
+                Please ensure your payment via {netbankingType.toUpperCase()} is
+                complete. Once done, click below to confirm your order.
               </p>
               <div className="flex gap-3 justify-center">
                 <button

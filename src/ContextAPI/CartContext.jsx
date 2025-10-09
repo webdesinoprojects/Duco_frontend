@@ -22,6 +22,7 @@ export const CartProvider = ({ children }) => {
 
   // ✅ Save to localStorage only after hydration
   useEffect(() => {
+    if (!hydrated) return;
     console.log("🛒 Cart updated:", cart); // ✅ log full cart every time it changes
     localStorage.setItem("cart", JSON.stringify(cart));
     console.log("🛒 Cart updated:", cart);
@@ -98,6 +99,7 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider
       value={{
         cart,
+        hydrated,
         addToCart,
         setCart,
         removeFromCart,
