@@ -11,14 +11,47 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import JsBarcode from "jsbarcode";
 
+// ✅ Safe number parser
 const safeNum = (v, fallback = 0) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 };
 
-// ✅ Invoice Component
+// ✅ INR Formatter
+const formatINR = (num) =>
+  "₹" +
+  safeNum(num, 0)
+    .toFixed(2)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+/* ------------------------- Helpers for printing logic ------------------------- */
+// ✅ Count how many printed sides ONLY by checking for an uploaded image.
+//    (No preview image, no text; no minimum enforced.)
+const countDesignSides = (item) => {
+  const d = item?.design || {};
+  const sides = ["front", "back", "left", "right"];
+  let used = 0;
+  sides.forEach((s) => {
+    const side = d[s] || {};
+    const hasImage = !!side?.uploadedImage;
+    if (hasImage) used += 1;
+  });
+  return used;
+};
+
+// Pick slab from a plan
+const pickSlab = (plan, qty) => {
+  const slabs = plan?.slabs || [];
+  return (
+    slabs.find((s) => qty >= s.min && qty <= s.max) ||
+    slabs[slabs.length - 1] || { printingPerSide: 0, pnfPerUnit: 0, pnfFlat: 0 }
+  );
+};
+
+/* =============================== INVOICE UI =============================== */
 const InvoiceDucoTailwind = ({ data }) => {
   const barcodeRef = useRef(null);
+
   useEffect(() => {
     if (barcodeRef.current && data?.invoice?.number) {
       JsBarcode(barcodeRef.current, data.invoice.number, {
@@ -97,26 +130,29 @@ const InvoiceDucoTailwind = ({ data }) => {
               <td style={{ padding: "6px" }}>{it.description}</td>
               <td style={{ padding: "6px" }}>{it.qty}</td>
               <td style={{ padding: "6px" }}>{it.unit}</td>
-              <td style={{ padding: "6px" }}>₹{it.price}</td>
+              <td style={{ padding: "6px" }}>{formatINR(it.price)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <div style={{ marginTop: "10px" }}>
-        <p>P&F Charges: ₹{data.charges.pf}</p>
-        <p>Printing Charges: ₹{data.charges.printing}</p>
         <p>
-          CGST {data.tax.cgstRate}% = ₹{data.tax.cgstAmount} <br />
-          SGST {data.tax.sgstRate}% = ₹{data.tax.sgstAmount}
+          P&F Charges: {formatINR(data.charges.pf)}
+          {data.charges.pfFlat > 0 ? ` (includes flat ₹${safeNum(data.charges.pfFlat).toFixed(2)})` : ""}
+        </p>
+        <p>Printing Charges: {formatINR(data.charges.printing)}</p>
+        <p>
+          CGST {data.tax.cgstRate}% = {formatINR(data.tax.cgstAmount)} <br />
+          SGST {data.tax.sgstRate}% = {formatINR(data.tax.sgstAmount)}
         </p>
       </div>
 
       <h2 style={{ textAlign: "right", marginTop: "10px" }}>
-        Subtotal: ₹{data.subtotal}
+        Subtotal: {formatINR(data.subtotal)}
       </h2>
       <h2 style={{ textAlign: "right", marginTop: "5px" }}>
-        Grand Total: ₹{data.total}
+        Grand Total: {formatINR(data.total)}
       </h2>
 
       <hr style={{ margin: "15px 0" }} />
@@ -132,6 +168,7 @@ const InvoiceDucoTailwind = ({ data }) => {
   );
 };
 
+/* =============================== MAIN CART =============================== */
 const Cart = () => {
   const { cart, setCart, removeFromCart, updateQuantity } =
     useContext(CartContext);
@@ -145,72 +182,74 @@ const Cart = () => {
   const { toConvert } = usePriceContext();
   const invoiceRef = useRef();
 
+  // Pricing knobs (persisted)
   const [pfPerUnit, setPfPerUnit] = useState(0);
+  const [pfFlat, setPfFlat] = useState(0);
   const [printPerUnit, setPrintPerUnit] = useState(0);
+  const [printingPerSide, setPrintingPerSide] = useState(0);
   const [gstPercent, setGstPercent] = useState(0);
 
-  // Restore summary from localStorage
+  // ✅ Restore values from localStorage
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("orderSummary"));
     if (saved) {
-      setPfPerUnit(saved.pfPerUnit || 0);
-      setPrintPerUnit(saved.printPerUnit || 0);
-      setGstPercent(saved.gstPercent || 0);
+      setPfPerUnit(safeNum(saved.pfPerUnit, 0));
+      setPfFlat(safeNum(saved.pfFlat, 0));
+      setPrintPerUnit(safeNum(saved.printPerUnit, 0));
+      setPrintingPerSide(safeNum(saved.printingPerSide, 0));
+      setGstPercent(safeNum(saved.gstPercent, 0));
     }
   }, []);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      if (stored) setUser(JSON.parse(stored));
-    } catch (e) {
-      console.error("Invalid user in localStorage", e);
-    }
+    const stored = localStorage.getItem("user");
+    if (stored) setUser(JSON.parse(stored));
   }, []);
 
-  // Fetch all products
+  // ✅ Fetch products
   useEffect(() => {
-    const run = async () => {
+    const fetchProducts = async () => {
       try {
         setLoadingProducts(true);
-        const fetched = await getproducts();
-        if (Array.isArray(fetched)) setProducts(fetched);
+        const data = await getproducts();
+        if (Array.isArray(data)) setProducts(data);
       } catch (e) {
         toast.error("Failed to load products. Please refresh.");
       } finally {
         setLoadingProducts(false);
       }
     };
-    run();
+    fetchProducts();
   }, []);
 
-  // ✅ Sync cart items with updated product data
+  // ✅ Merge product info into cart
   useEffect(() => {
     if (products.length && cart.length) {
-      const synced = cart.map((ci) => {
+      const merged = cart.map((ci) => {
         const p = products.find((x) => x._id === ci.id);
-        return p ? { ...p, ...ci } : ci;
+        return p ? { ...p, ...ci } : ci; // ✅ correct order (cart overrides product fields)
       });
-      setCart(synced);
+      setCart(merged);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products]);
 
-  // Actual combined data
   const actualData = useMemo(() => {
-    if (!Array.isArray(cart) || !products.length) return [];
+    if (!cart.length) return [];
     return cart.map((ci) => {
       const p = products.find((x) => x._id === ci.id);
       return p ? { ...p, ...ci } : ci;
     });
   }, [cart, products]);
 
+  // ✅ Totals
   const totalQuantity = useMemo(
     () =>
       actualData.reduce(
         (sum, item) =>
           sum +
           Object.values(item.quantity || {}).reduce(
-            (a, q) => a + safeNum(q, 0),
+            (a, q) => a + safeNum(q),
             0
           ),
         0
@@ -222,85 +261,150 @@ const Cart = () => {
     () =>
       actualData.reduce((sum, item) => {
         const qty = Object.values(item.quantity || {}).reduce(
-          (a, q) => a + safeNum(q, 0),
+          (a, q) => a + safeNum(q),
           0
         );
-        return sum + safeNum(item.price, 0) * qty;
+        return sum + safeNum(item.price) * qty;
       }, 0),
     [actualData]
   );
 
-  // Fetch charge rates
+  // ✅ Compute "printing units" = quantity × sides (counting only sides with an uploaded image)
+  const printingUnits = useMemo(() => {
+    return actualData.reduce((acc, item) => {
+      const qty =
+        Object.values(item.quantity || {}).reduce((a, q) => a + safeNum(q), 0) ||
+        0;
+      const sides = countDesignSides(item);
+      return acc + qty * sides;
+    }, 0);
+  }, [actualData]);
+
+  // ✅ Fetch P&F, Printing, GST logic
   useEffect(() => {
     const fetchRates = async () => {
       try {
         setLoadingRates(true);
-        const res = await getChargePlanRates(totalQuantity, subtotal);
-        if (res?.success) {
+        const res = await getChargePlanRates(totalQuantity || 1);
+
+        // Legacy shape with perUnit costs
+        if (res?.success && res?.data) {
           const pf = safeNum(res.data?.perUnit?.pakageingandforwarding, 0);
           const print = safeNum(res.data?.perUnit?.printingcost, 0);
-          const gst = safeNum(res?.data?.gstPercent, 0);
+          const gst = safeNum(res?.data?.gstPercent, 5);
           setPfPerUnit(pf);
+          setPfFlat(0);
           setPrintPerUnit(print);
+          setPrintingPerSide(0);
           setGstPercent(gst);
+
           localStorage.setItem(
             "orderSummary",
             JSON.stringify({
               pfPerUnit: pf,
+              pfFlat: 0,
               printPerUnit: print,
+              printingPerSide: 0,
               gstPercent: gst,
             })
           );
+          return;
         }
+
+        // New plan shape with slabs + gstRate
+        if (res && (Array.isArray(res.slabs) || res.gstRate != null)) {
+          const slab = pickSlab(res, totalQuantity || 0);
+          const pfUnit = safeNum(slab?.pnfPerUnit, 0);
+          const pfF = safeNum(slab?.pnfFlat, 0);
+          const perSide = safeNum(
+            slab?.printingPerSide ?? slab?.printingPerUnit,
+            0
+          );
+          const gst = safeNum((res.gstRate ?? 0.05) * 100, 5);
+
+          setPfPerUnit(pfUnit);
+          setPfFlat(pfF);
+          setPrintingPerSide(perSide); // preferred per-side pricing
+          setPrintPerUnit(0); // legacy off
+          setGstPercent(gst);
+
+          localStorage.setItem(
+            "orderSummary",
+            JSON.stringify({
+              pfPerUnit: pfUnit,
+              pfFlat: pfF,
+              printPerUnit: 0,
+              printingPerSide: perSide,
+              gstPercent: gst,
+            })
+          );
+          return;
+        }
+      } catch {
+        console.warn("Could not fetch charge plan, using saved ones");
       } finally {
         setLoadingRates(false);
       }
     };
-    if (totalQuantity > 0) fetchRates();
-  }, [totalQuantity, subtotal]);
 
-  const pfTotal = pfPerUnit;
-  const printTotal = printPerUnit;
-  const gstTotal = (safeNum(subtotal, 0) * safeNum(gstPercent, 0)) / 100;
+    if (subtotal > 0 && totalQuantity > 0) fetchRates();
+  }, [subtotal, totalQuantity]);
+
+  // ✅ Calculate totals
+  const pfTotal = safeNum(pfPerUnit) * totalQuantity + safeNum(pfFlat);
+  const printingTotalBySide = safeNum(printingPerSide) * printingUnits;
+  const printingTotalByUnit = safeNum(printPerUnit) * totalQuantity;
+  const printTotal =
+    printingPerSide > 0 ? printingTotalBySide : printingTotalByUnit;
+
+  const gstTotal =
+    ((subtotal + pfTotal + printTotal) * safeNum(gstPercent)) / 100;
   const grandTotal = subtotal + pfTotal + printTotal + gstTotal;
 
-  const convert = (amt) =>
-    (safeNum(amt, 0) * safeNum(toConvert, 1)).toFixed(2);
+  const orderPayload = {
+    items: actualData,
+    totalPay: grandTotal,
+    address,
+    user,
+    pf: pfPerUnit,
+    pfFlat,
+    gst: gstPercent,
+    printing: printPerUnit,
+    printingPerSide,
+    printingUnits,
+    breakdown: {
+      subtotal,
+      pfTotal,
+      printTotal,
+      gstTotal,
+      grandTotal,
+    },
+  };
 
-  const orderPayload = useMemo(
-    () => ({
-      items: actualData,
-      totalPay: grandTotal * safeNum(toConvert, 1),
-      address,
-      user,
-      pf: pfPerUnit,
-      gst: gstPercent,
-      printing: printPerUnit,
-    }),
-    [actualData, grandTotal, toConvert, address, user]
-  );
-
-  // 💡 NEW: B2B/B2C Payment Logic based on backend field
-  const isB2B = actualData.some((item) => item.isCorporate === true);
-
+  const isB2B = actualData.some((x) => x.isCorporate);
   const paymentOptions = isB2B
     ? ["Netbanking", "Pickup from Store", "Pay Online"]
     : ["Pay Online"];
 
-  console.log("💳 Order Type:", isB2B ? "B2B (Corporate)" : "B2C (Retail)");
-  console.log("💰 Available payment options:", paymentOptions);
-
   if (loadingProducts) return <Loading />;
-  if (!products.length)
-    return (
-      <div className="p-8 text-center text-gray-300">Loading products...</div>
-    );
-  if (!cart?.length)
+
+  if (!cart.length)
     return (
       <div className="p-8 text-center text-gray-400 text-xl">
         Your cart is empty.
       </div>
     );
+
+  const printingRateLabel =
+    printingPerSide > 0
+      ? `₹${safeNum(printingPerSide).toFixed(2)}/side`
+      : `${safeNum(printPerUnit).toFixed(2)}/unit`;
+  const pfLabel =
+    pfFlat > 0
+      ? `${safeNum(pfPerUnit).toFixed(2)}/unit + flat ₹${safeNum(pfFlat).toFixed(
+          2
+        )}`
+      : `${safeNum(pfPerUnit).toFixed(2)}/unit`;
 
   return (
     <div className="min-h-screen text-white p-8">
@@ -328,7 +432,7 @@ const Cart = () => {
           ))}
         </div>
 
-        {/* Order Summary */}
+        {/* ✅ ORDER SUMMARY */}
         <div className="lg:w-96 flex flex-col">
           <div
             className="lg:w-96 h-fit rounded-sm p-6"
@@ -339,32 +443,35 @@ const Cart = () => {
             <div className="space-y-4 mb-8">
               <div className="flex justify-between">
                 <span className="text-gray-300">Subtotal</span>
-                <span>{convert(subtotal)}</span>
+                <span>{formatINR(subtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-300">P&F Charges</span>
-                <span>{convert(pfTotal)}</span>
+                <span className="text-gray-300">P&F ({pfLabel})</span>
+                <span>{formatINR(pfTotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-300">Printing</span>
-                <span>{convert(printTotal)}</span>
+                <span className="text-gray-300">
+                  Printing ({printingRateLabel}
+                  {printingPerSide > 0 ? ` • ${printingUnits} sides` : ""})
+                </span>
+                <span>{formatINR(printTotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-300">GST ({gstPercent}%)</span>
-                <span>{convert(gstTotal)}</span>
+                <span className="text-gray-300">GST ({safeNum(gstPercent).toFixed(2)}%)</span>
+                <span>{formatINR(gstTotal)}</span>
               </div>
             </div>
 
             <div className="flex justify-between border-t border-gray-600 pt-4 mb-6">
               <span className="font-bold">Total</span>
-              <span className="font-bold">{convert(grandTotal)}</span>
+              <span className="font-bold">{formatINR(grandTotal)}</span>
             </div>
 
             <button
               className="w-full py-4 font-bold bg-yellow-400 text-black hover:bg-yellow-300 cursor-pointer"
               onClick={() => {
                 if (!address) {
-                  toast.error("⚠️ Please select a delivery address");
+                  toast.error("⚠ Please select a delivery address");
                   return;
                 }
                 localStorage.removeItem("orderSummary");
@@ -412,7 +519,7 @@ const Cart = () => {
         </div>
       </div>
 
-      {/* Hidden Invoice */}
+      {/* ✅ Hidden Invoice */}
       <div ref={invoiceRef} style={{ display: "block" }}>
         <InvoiceDucoTailwind
           data={{
@@ -435,7 +542,7 @@ const Cart = () => {
             },
             items: actualData.map((item, idx) => {
               const sizes = Object.entries(item.quantity || {})
-                .filter(([size, qty]) => qty > 0)
+                .filter(([_, qty]) => qty > 0)
                 .map(([size, qty]) => `${size} × ${qty}`)
                 .join(", ");
               return {
@@ -451,12 +558,12 @@ const Cart = () => {
                 price: item.price,
               };
             }),
-            charges: { pf: pfTotal, printing: printTotal },
+            charges: { pf: pfTotal, pfFlat, printing: printTotal },
             tax: {
-              cgstRate: gstPercent / 2,
-              sgstRate: gstPercent / 2,
-              cgstAmount: gstTotal / 2,
-              sgstAmount: gstTotal / 2,
+              cgstRate: safeNum(gstPercent / 2),
+              sgstRate: safeNum(gstPercent / 2),
+              cgstAmount: safeNum(gstTotal / 2),
+              sgstAmount: safeNum(gstTotal / 2),
             },
             terms: [
               "Thank you for shopping with DucoArt!",

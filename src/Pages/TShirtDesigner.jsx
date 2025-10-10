@@ -20,7 +20,7 @@ import { MdNavigateNext } from "react-icons/md";
 import menstshirt from "../assets/men_s_white_polo_shirt_mockup-removebg-preview.png";
 import axios from "axios";
 import { createDesign, getproductssingle } from "../Service/APIservice";
-import { useParams, useNavigate, useLocation } from "react-router-dom"; // ✅ added useLocation
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { FaUpload, FaFont, FaRegKeyboard, FaTimes } from "react-icons/fa";
 
 // ======================== DRAGGABLE ITEM ========================
@@ -139,9 +139,8 @@ const TshirtDesigner = () => {
     const getdata = async () => {
       try {
         const data = await getproductssingle(proid);
-        console.log("PRODUCT DETAILS:", data); // ✅ log full response
-
-        setProductDetails(data); // ✅ save full product
+        console.log("PRODUCT DETAILS:", data);
+        setProductDetails(data);
 
         const match = data?.image_url?.find(
           (e) => e.colorcode === colorWithHash
@@ -227,6 +226,229 @@ const TshirtDesigner = () => {
     );
   };
 
+  // ======================== PRINTROVE HELPERS ========================
+  const canonSize = (s) => {
+    const t = String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const dict = {
+      XS: "XS",
+      XSMALL: "XS",
+
+      S: "S",
+      SMALL: "S",
+
+      M: "M",
+      MEDIUM: "M",
+
+      L: "L",
+      LARGE: "L",
+
+      XL: "XL",
+      XLARGE: "XL",
+      EXTRALARGE: "XL",
+
+      XXL: "2XL",
+      "2XL": "2XL",
+      DOUBLEXL: "2XL",
+      "2X": "2XL",
+
+      XXXL: "3XL",
+      "3XL": "3XL",
+      TRIPLEXL: "3XL",
+      "3X": "3XL",
+
+      // chest-size fallbacks
+      "38": "M",
+      "40": "L",
+      "42": "XL",
+      "44": "2XL",
+      "46": "3XL",
+    };
+    return dict[t] || t;
+  };
+
+  const deepFind = (obj, predicate) => {
+    try {
+      const stack = [obj];
+      while (stack.length) {
+        const cur = stack.pop();
+        if (!cur || typeof cur !== "object") continue;
+        if (predicate(cur)) return cur;
+        for (const v of Object.values(cur)) {
+          if (v && typeof v === "object") stack.push(v);
+        }
+      }
+    } catch {}
+    return null;
+  };
+
+  const deepFindPrintroveProductId = (obj) => {
+    const hit = deepFind(obj, (node) =>
+      Object.keys(node).some((k) => {
+        const key = k.toLowerCase();
+        return (
+          key.includes("printrove") &&
+          key.includes("product") &&
+          (typeof node[k] === "string" || typeof node[k] === "number")
+        );
+      })
+    );
+    if (!hit) return null;
+    const key = Object.keys(hit).find((k) => {
+      const kk = k.toLowerCase();
+      return kk.includes("printrove") && kk.includes("product");
+    });
+    return hit ? hit[key] : null;
+  };
+
+  const extractPrintroveProductId = (details) => {
+    const byColor = details?.image_url?.find((e) => e.colorcode === colorWithHash);
+    return (
+      details?.printrove_product_id ||
+      details?.printroveProductId ||
+      details?.product_mapping?.printrove_id ||
+      details?.product_mapping?.printrove_product_id ||
+      details?.printrove_id ||
+      details?.pricing?.[0]?.printrove_product_id ||
+      byColor?.printrove_product_id ||
+      deepFindPrintroveProductId(details) ||
+      null
+    );
+  };
+
+  // build variant map from many possible shapes, including color-level objects
+  const buildVariantMap = (details) => {
+    const map = {};
+    const upsert = (label, vid) => {
+      const c = canonSize(label);
+      if (!c || !vid) return;
+      if (!map[c]) map[c] = vid;
+    };
+
+    const coerceList = (node) =>
+      Array.isArray(node) ? node : node ? Object.values(node) : [];
+
+    // 1) product-level variant_mapping
+    coerceList(details?.variant_mapping).forEach((v) => {
+      const size = v?.size ?? v?.label ?? v?.name ?? v?.Size ?? v?.s;
+      const vid =
+        v?.printrove_variant_id ??
+        v?.printroveVariantId ??
+        v?.variant_id ??
+        v?.printrove_id ??
+        v?.variantId ??
+        null;
+      upsert(size, vid);
+    });
+
+    // 2) product-level pricing[]
+    coerceList(details?.pricing).forEach((p) => {
+      const size = p?.size ?? p?.label ?? p?.name ?? p?.Size;
+      const vid =
+        p?.printrove_variant_id ??
+        p?.printroveVariantId ??
+        p?.variant_id ??
+        p?.printrove_id ??
+        p?.variantId ??
+        null;
+      upsert(size, vid);
+    });
+
+    // 3) color-level (inside image_url entry for selected color)
+    const colorNode =
+      details?.image_url?.find((e) => e.colorcode === colorWithHash) || null;
+
+    if (colorNode) {
+      // common shapes: variant_mapping, variants, sizes, size_map, printrove_variants
+      const candidates = [
+        colorNode?.variant_mapping,
+        colorNode?.variants,
+        colorNode?.sizes,
+        colorNode?.size_map,
+        colorNode?.sizeMapping,
+        colorNode?.printrove_variants,
+      ];
+      candidates.forEach((cand) => {
+        coerceList(cand).forEach((v) => {
+          const size = v?.size ?? v?.label ?? v?.name ?? v?.Size ?? v?.s;
+          const vid =
+            v?.printrove_variant_id ??
+            v?.printroveVariantId ??
+            v?.variant_id ??
+            v?.printrove_id ??
+            v?.variantId ??
+            null;
+          upsert(size, vid);
+        });
+      });
+
+      // deep fallback scan under color node
+      try {
+        const stack = [colorNode];
+        while (stack.length) {
+          const cur = stack.pop();
+          if (!cur || typeof cur !== "object") continue;
+          const keys = Object.keys(cur).map((k) => k.toLowerCase());
+          const hasSizeKey = keys.some((k) => k.includes("size"));
+          const variantKey = keys.find(
+            (k) => (k.includes("variant") && k.includes("id")) || k === "variantid"
+          );
+          if (hasSizeKey && variantKey) {
+            const sizeVal =
+              cur.size || cur.Size || cur.label || cur.name || cur.s || "";
+            const vid = cur[Object.keys(cur).find(
+              (kk) => {
+                const kkl = kk.toLowerCase();
+                return (
+                  (kkl.includes("variant") && kkl.includes("id")) ||
+                  kkl === "variantid" ||
+                  kkl === "printrove_variant_id"
+                );
+              }
+            )];
+            upsert(sizeVal, vid);
+          }
+          for (const v of Object.values(cur)) {
+            if (v && typeof v === "object") stack.push(v);
+          }
+        }
+      } catch {}
+    }
+
+    // 4) deep fallback scan over entire product
+    try {
+      const stack = [details];
+      while (stack.length) {
+        const cur = stack.pop();
+        if (!cur || typeof cur !== "object") continue;
+        const keys = Object.keys(cur).map((k) => k.toLowerCase());
+        const hasSizeKey = keys.some((k) => k.includes("size"));
+        const variantKey = keys.find(
+          (k) => (k.includes("variant") && k.includes("id")) || k === "variantid"
+        );
+        if (hasSizeKey && variantKey) {
+          const sizeVal =
+            cur.size || cur.Size || cur.label || cur.name || cur.s || "";
+          const vid = cur[Object.keys(cur).find(
+            (kk) => {
+              const kkl = kk.toLowerCase();
+              return (
+                (kkl.includes("variant") && kkl.includes("id")) ||
+                kkl === "variantid" ||
+                kkl === "printrove_variant_id"
+              );
+            }
+          )];
+          upsert(sizeVal, vid);
+        }
+        for (const v of Object.values(cur)) {
+          if (v && typeof v === "object") stack.push(v);
+        }
+      }
+    } catch {}
+
+    return map;
+  };
+
   // ======================== SAVE LOGIC ========================
   const saveSelectedViews = async () => {
     try {
@@ -243,17 +465,18 @@ const TshirtDesigner = () => {
           cacheBust: true,
           pixelRatio: 2,
           backgroundColor: "#fff",
+          skipFonts: true, // avoid Google Fonts cssRules CORS noise
         });
 
         images[view] = dataUrl;
       }
 
-      // ✅ Identify logged-in user (adjust according to your app’s auth flow)
+      // Identify user
       const userData = JSON.parse(localStorage.getItem("user")) || {};
       const userId =
         userData?._id || userData?.id || "66bff9df5e3a9d0d8d70b5f2"; // fallback test id
 
-      // ✅ Prepare design payload as backend expects
+      // Assemble design doc
       const designPayload = {
         user: userId,
         products: productDetails?._id || proid,
@@ -266,60 +489,88 @@ const TshirtDesigner = () => {
             right: allDesigns.right,
             previewImages: images,
             color: colorWithHash,
+            additionalFilesMeta: additionalFiles.map((f) => ({
+              name: f.name,
+              size: f.file?.size,
+              type: f.file?.type,
+            })),
           },
         ],
       };
 
       console.log("🎨 Sending Design Payload:", designPayload);
-
       await createDesign(designPayload);
 
-      // ✅ Clean size object if needed
-      // ✅ clean up size object so only nonzero sizes remain
-      // ✅ Clean up quantities
+      // Quantities cleanup + canonicalization
       const cleanedQuantities = Object.fromEntries(
         Object.entries(passedQuantity || {}).map(([k, v]) => [
-          k,
+          canonSize(k),
           Number(v) || 0,
         ])
       );
       const finalQuantities = Object.fromEntries(
         Object.entries(cleanedQuantities).filter(([_, v]) => v > 0)
       );
-      // ✅ Extract Printrove IDs from productDetails safely
-      const printroveProductId =
-        productDetails?.printroveProductId ||
-        productDetails?.product_mapping?.printrove_id ||
-        productDetails?.printrove_id ||
-        null;
 
-      const printroveVariantId =
-        productDetails?.printroveVariantId ||
-        productDetails?.variant_mapping?.[0]?.printrove_variant_id ||
-        productDetails?.printrove_variant_id ||
-        null;
+      // Extract mappings
+      const printroveProductId = extractPrintroveProductId(productDetails);
+      const variantMap = buildVariantMap(productDetails);
+      console.log("🧭 Variant Map:", variantMap);
 
-      // ✅ Validate IDs before proceeding
-      if (!printroveProductId || !printroveVariantId) {
-        console.error(
-          "❌ Missing Printrove IDs in productDetails:",
-          productDetails
-        );
+      // Build line items only for mapped sizes
+      const printroveLineItems = Object.entries(finalQuantities)
+        .filter(([size]) => !!variantMap[canonSize(size)])
+        .map(([size, qty]) => ({
+          size,
+          qty,
+          printroveVariantId: variantMap[canonSize(size)],
+        }));
+
+      const unmappedSizes = Object.keys(finalQuantities).filter(
+        (s) => !variantMap[canonSize(s)]
+      );
+
+      if (printroveLineItems.length === 0) {
+        // ⚠️ No mapped sizes: continue (non-blocking) but flag clearly
+        console.warn("⚠️ No mapped variant IDs for any selected sizes.", {
+          finalQuantities,
+          variantMap,
+        });
         alert(
-          "Missing Printrove IDs — product not properly mapped for Printrove."
+          "No Printrove Variant IDs were found for your selected sizes.\nWe'll add the design to cart, but please map 'printrove_variant_id' per size before placing with Printrove."
         );
-        setIsSaving(false);
-        return;
+      } else if (unmappedSizes.length) {
+        // Some mapped, some not — continue with warning
+        console.warn("⚠️ Unmapped sizes (not added to line items):", unmappedSizes);
+        alert(
+          `Missing Printrove Variant IDs for sizes: ${unmappedSizes.join(
+            ", "
+          )}\nWe'll add mapped sizes to cart; please map the rest before placing the order.`
+        );
       }
 
-      // ✅ Build final product object for cart
+      // Fallback single variant id from the first mapped line item (legacy field)
+      const fallbackVariantId = printroveLineItems[0]?.printroveVariantId || null;
+      const needsProductId = !printroveProductId;
+
+      // Build cart product
       const customProduct = {
         id: `custom-tshirt-${Date.now()}`,
         productId: productDetails?._id || proid,
         products_name: productDetails?.products_name || "Custom T-Shirt",
         name: productDetails?.products_name || "Custom T-Shirt",
-        printroveProductId,
-        printroveVariantId,
+        printroveProductId: printroveProductId || null,
+        printroveVariantId: fallbackVariantId, // legacy single
+        printroveVariantsBySize: Object.fromEntries(
+          Object.keys(finalQuantities)
+            .filter((s) => !!variantMap[canonSize(s)])
+            .map((s) => [s, variantMap[canonSize(s)]])
+        ),
+        printroveLineItems, // may be empty; UI should handle before placing order
+        printroveNeedsMapping: {
+          missingProductId: needsProductId,
+          unmappedSizes,
+        },
         design: {
           ...allDesigns,
           frontImage: images.front,
@@ -330,11 +581,19 @@ const TshirtDesigner = () => {
         colortext: productDetails?.colortext || "Custom",
         gender: productDetails?.gender || "Unisex",
         price: Math.round(productDetails?.pricing?.[0]?.price_per || 499),
-        quantity: finalQuantities || { M: 1 },
+        quantity: finalQuantities,
+        additionalFilesMeta: additionalFiles.map((f) => ({ name: f.name })),
       };
 
-      // ✅ Final validation before adding to cart
-      console.log("🧾 Adding custom product to cart:", customProduct);
+      console.log("🧾 FINAL PRODUCT BEFORE ADDING TO CART:", {
+        id: productDetails?._id || proid,
+        _id: productDetails?._id || proid,
+        printroveProductId: printroveProductId || null,
+        legacyVariant: fallbackVariantId,
+        lineItems: printroveLineItems,
+        needsMapping: customProduct?.printroveNeedsMapping,
+      });
+
       addToCart(customProduct);
       alert("Design saved and added to cart!");
       navigate("/cart");
@@ -480,6 +739,7 @@ const TshirtDesigner = () => {
           src={sideimage[getViewIndex(view)] || menstshirt}
           alt={`${view} T-shirt`}
           className="absolute inset-0 w-full h-full object-contain pointer-events-none z-0"
+          crossOrigin="anonymous"
         />
         <div className="relative w-full h-full z-10">
           {design.uploadedImage && (

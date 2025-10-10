@@ -107,10 +107,7 @@ export const getproductcategory = async (idsub) => {
 
 export const Updateproductcate = async (id, updates) => {
   try {
-    const res = await axios.put(
-      `${API_BASE}products/update/${id}`,
-      updates
-    );
+    const res = await axios.put(`${API_BASE}products/update/${id}`, updates);
     return res.data || [];
   } catch (err) {
     console.error("Error updating product:", err);
@@ -213,9 +210,62 @@ export async function adminLogin(userid, password) {
 }
 
 /* ------------------------------- CHARGE PLAN ------------------------------- */
-export const getChargePlanRates = async (qty) => {
-  const res = await axios.get(`${API_BASE}api/chargeplan/rates?qty=${qty}`);
-  return res.data;
+/**
+ * Returns a charge plan used for printing & P&F + tax rate.
+ * Shape (recommended):
+ * {
+ *   slabs: [
+ *     { min: 1, max: 9,    printingPerSide: 69, pnfPerUnit: 0, pnfFlat: 25 },
+ *     { min: 10, max: 49,  printingPerSide: 49, pnfPerUnit: 0, pnfFlat: 25 },
+ *     { min: 50, max: 999999, printingPerSide: 39, pnfPerUnit: 0, pnfFlat: 25 }
+ *   ],
+ *   gstRate: 0.05
+ * }
+ */
+export const getChargePlanRates = async (qty = 1) => {
+  try {
+    const res = await axios.get(`${API_BASE}api/chargeplan/rates`, {
+      params: { qty },
+      timeout: 8000,
+    });
+    const data = res?.data;
+
+    // Cache successful plan for offline/fallback use
+    try {
+      localStorage.setItem("chargePlanRates", JSON.stringify(data));
+    } catch {}
+
+    return data;
+  } catch (err) {
+    console.warn(
+      "getChargePlanRates(): API failed, using cached/default plan.",
+      err?.response?.status,
+      err?.message
+    );
+
+    // 1) Try cached plan from localStorage
+    try {
+      const cached = localStorage.getItem("chargePlanRates");
+      if (cached) return JSON.parse(cached);
+    } catch {}
+
+    // 2) Final hardcoded fallback (EDIT values to match your business rules)
+    return {
+      slabs: [
+        { min: 1, max: 9, printingPerSide: 69, pnfPerUnit: 0, pnfFlat: 25 },
+        { min: 10, max: 49, printingPerSide: 49, pnfPerUnit: 0, pnfFlat: 25 },
+        { min: 50, max: 999999, printingPerSide: 39, pnfPerUnit: 0, pnfFlat: 25 },
+      ],
+      gstRate: 0.05, // 5%
+    };
+  }
+};
+
+// Optional: manual cache helper (safe to import even if unused)
+export const cacheChargePlanRates = (plan) => {
+  try {
+    localStorage.setItem("chargePlanRates", JSON.stringify(plan));
+  } catch {}
 };
 
 /* ------------------------------- BANK DETAILS ------------------------------- */
