@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom"; // ✅ added useLocation
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getInvoiceByOrder } from "../Service/APIservice";
 import { useCart } from "../ContextAPI/CartContext";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import JsBarcode from "jsbarcode";
 
-// ✅ INVOICE COMPONENT
+/* ----------------------------- INVOICE TEMPLATE ----------------------------- */
 const InvoiceDucoTailwind = ({ data }) => {
   const barcodeRef = useRef(null);
 
@@ -160,6 +160,12 @@ const InvoiceDucoTailwind = ({ data }) => {
               </td>
             </tr>
             <tr>
+              <td style={{ padding: "6px" }}>Total GST (5%):</td>
+              <td style={{ textAlign: "right", padding: "6px" }}>
+                ₹{(tax.cgstAmount + tax.sgstAmount).toFixed(2)}
+              </td>
+            </tr>
+            <tr>
               <td style={{ padding: "6px" }}>
                 CGST ({tax.cgstRate}%)
               </td>
@@ -206,58 +212,79 @@ const InvoiceDucoTailwind = ({ data }) => {
   );
 };
 
-// ✅ MAIN ORDER SUCCESS COMPONENT
+/* ------------------------------ ORDER SUCCESS ------------------------------ */
 export default function OrderSuccess() {
-  const { orderId } = useParams();
+  const { orderId: paramId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // ✅ access state
+  const location = useLocation();
   const [invoiceData, setInvoiceData] = useState(null);
   const { clearCart } = useCart();
   const invoiceRef = useRef();
 
-  // ✅ Read passed data (if available)
+  const orderId = paramId || localStorage.getItem("lastOrderId");
+  const storedMeta = JSON.parse(localStorage.getItem("lastOrderMeta") || "{}");
+
+  const paymentMeta =
+    location.state?.paymentMeta ||
+    storedMeta ||
+    {};
   const paymentMethod =
-    location.state?.paymentMethod || "Pay Online (Default)";
-  const isB2B =
-    location.state?.isB2B !== undefined
-      ? location.state.isB2B
-      : false;
+    paymentMeta.mode === "store_pickup"
+      ? "Pay on Store (Pickup)"
+      : paymentMeta.mode === "netbanking"
+      ? "Netbanking / UPI"
+      : "Pay Online";
+  const isB2B = paymentMeta?.isCorporate || false;
 
   console.log("💳 Payment Mode:", paymentMethod);
   console.log("🏢 Order Type:", isB2B ? "B2B" : "B2C");
 
+  /* ✅ FIXED INVOICE LOGIC: accurate charges + gst like cart */
   useEffect(() => {
     async function fetchInvoice() {
       try {
+        if (!orderId) throw new Error("No Order ID found");
+
         const res = await getInvoiceByOrder(orderId);
         const inv = res?.invoice;
         if (!inv) throw new Error("No invoice found");
 
-        // ✅ Calculate subtotal dynamically
-        const subtotal = inv.items.reduce(
+        const items = inv.items || [];
+
+        // ✅ Consistent with cart & Razorpay invoice logic
+        const subtotal = items.reduce(
           (sum, item) => sum + Number(item.qty || 0) * Number(item.price || 0),
           0
         );
 
-        const pf = inv.charges?.pf || 0;
-        const printing = inv.charges?.printing || 0;
+        const pf = Number(inv.charges?.pf ?? inv.pfCharges ?? 0);
+        const printing = Number(inv.charges?.printing ?? inv.printingCharges ?? 0);
 
-        // ✅ Correct GST split
-        const gstRate = inv.tax?.igstRate || 5;
-        const gstTotal = (subtotal * gstRate) / 100;
-        const cgstRate = gstRate / 2;
-        const sgstRate = gstRate / 2;
-        const cgstAmount = gstTotal / 2;
-        const sgstAmount = gstTotal / 2;
-        const total = subtotal + pf + printing + gstTotal;
+        const gstRate =
+          inv.tax?.igstRate ?? inv.tax?.gstRate ?? inv.gstRate ?? 5;
+        const gstTotal =
+          inv.tax?.igstAmount ??
+          inv.gstTotal ??
+          ((subtotal + pf + printing) * gstRate) / 100;
+
+        const cgstRate = inv.tax?.cgstRate ?? gstRate / 2;
+        const sgstRate = inv.tax?.sgstRate ?? gstRate / 2;
+        const cgstAmount = inv.tax?.cgstAmount ?? gstTotal / 2;
+        const sgstAmount = inv.tax?.sgstAmount ?? gstTotal / 2;
+
+        const total =
+          Number(inv.total ?? inv.totalPay) || subtotal + pf + printing + gstTotal;
 
         const formatted = {
           ...inv,
+          items,
+          charges: { pf, printing },
           tax: { cgstRate, sgstRate, cgstAmount, sgstAmount },
           subtotal,
           total,
         };
 
+        console.log("🧾 Normalized Invoice for Success Page:", formatted);
         setInvoiceData(formatted);
         clearCart();
       } catch (err) {
@@ -272,7 +299,6 @@ export default function OrderSuccess() {
   const downloadPDF = async () => {
     const input = invoiceRef.current;
     if (!input) return;
-
     const canvas = await html2canvas(input, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
@@ -298,7 +324,6 @@ export default function OrderSuccess() {
     );
   }
 
-  // ✅ Render Invoice
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="mx-auto max-w-4xl text-center mb-10">
@@ -318,6 +343,15 @@ export default function OrderSuccess() {
           </p>
           <p>
             <b>Order Type:</b> {isB2B ? "Corporate (B2B)" : "Retail (B2C)"}
+          </p>
+          <p>
+            <b>P&F Charges:</b> ₹{invoiceData.charges.pf.toFixed(2)} |{" "}
+            <b>Printing:</b> ₹{invoiceData.charges.printing.toFixed(2)} |{" "}
+            <b>GST (5%):</b> ₹
+            {(invoiceData.tax.cgstAmount + invoiceData.tax.sgstAmount).toFixed(2)}
+          </p>
+          <p>
+            <b>Grand Total:</b> ₹{invoiceData.total.toFixed(2)}
           </p>
         </div>
 
