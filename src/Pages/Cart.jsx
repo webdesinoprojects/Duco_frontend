@@ -136,6 +136,8 @@ const InvoiceDucoTailwind = ({ data }) => {
         </tbody>
       </table>
 
+      {/* ✅ Commented out PF + Printing charge section to exclude from final */}
+      {/*
       <div style={{ marginTop: "10px" }}>
         <p>
           P&F Charges: {formatINR(data.charges.pf)}
@@ -147,6 +149,7 @@ const InvoiceDucoTailwind = ({ data }) => {
           SGST {data.tax.sgstRate}% = {formatINR(data.tax.sgstAmount)}
         </p>
       </div>
+      */}
 
       <h2 style={{ textAlign: "right", marginTop: "10px" }}>
         Subtotal: {formatINR(data.subtotal)}
@@ -269,7 +272,7 @@ const Cart = () => {
     [actualData]
   );
 
-  // ✅ Compute "printing units" = quantity × sides (counting only sides with an uploaded image)
+  // ✅ Compute "printing units" = quantity × sides
   const printingUnits = useMemo(() => {
     return actualData.reduce((acc, item) => {
       const qty =
@@ -287,7 +290,7 @@ const Cart = () => {
         setLoadingRates(true);
         const res = await getChargePlanRates(totalQuantity || 1);
 
-        // Legacy shape with perUnit costs
+        // Legacy shape
         if (res?.success && res?.data) {
           const pf = safeNum(res.data?.perUnit?.pakageingandforwarding, 0);
           const print = safeNum(res.data?.perUnit?.printingcost, 0);
@@ -311,7 +314,7 @@ const Cart = () => {
           return;
         }
 
-        // New plan shape with slabs + gstRate
+        // New plan shape
         if (res && (Array.isArray(res.slabs) || res.gstRate != null)) {
           const slab = pickSlab(res, totalQuantity || 0);
           const pfUnit = safeNum(slab?.pnfPerUnit, 0);
@@ -324,8 +327,8 @@ const Cart = () => {
 
           setPfPerUnit(pfUnit);
           setPfFlat(pfF);
-          setPrintingPerSide(perSide); // preferred per-side pricing
-          setPrintPerUnit(0); // legacy off
+          setPrintingPerSide(perSide);
+          setPrintPerUnit(0);
           setGstPercent(gst);
 
           localStorage.setItem(
@@ -351,31 +354,24 @@ const Cart = () => {
   }, [subtotal, totalQuantity]);
 
   // ✅ Calculate totals
-  const pfTotal = safeNum(pfPerUnit) * totalQuantity + safeNum(pfFlat);
-  const printingTotalBySide = safeNum(printingPerSide) * printingUnits;
-  const printingTotalByUnit = safeNum(printPerUnit) * totalQuantity;
-  const printTotal =
-    printingPerSide > 0 ? printingTotalBySide : printingTotalByUnit;
+  // const pfTotal = safeNum(pfPerUnit) * totalQuantity + safeNum(pfFlat);
+  // const printingTotalBySide = safeNum(printingPerSide) * printingUnits;
+  // const printingTotalByUnit = safeNum(printPerUnit) * totalQuantity;
+  // const printTotal =
+  //   printingPerSide > 0 ? printingTotalBySide : printingTotalByUnit;
 
   const gstTotal =
-    ((subtotal + pfTotal + printTotal) * safeNum(gstPercent)) / 100;
-  const grandTotal = subtotal + pfTotal + printTotal + gstTotal;
+    ((subtotal /* + pfTotal + printTotal */) * safeNum(gstPercent)) / 100;
+  const grandTotal = subtotal /* + pfTotal + printTotal */ + gstTotal;
 
   const orderPayload = {
     items: actualData,
     totalPay: grandTotal,
     address,
     user,
-    pf: pfPerUnit,
-    pfFlat,
     gst: gstPercent,
-    printing: printPerUnit,
-    printingPerSide,
-    printingUnits,
     breakdown: {
       subtotal,
-      pfTotal,
-      printTotal,
       gstTotal,
       grandTotal,
     },
@@ -394,17 +390,6 @@ const Cart = () => {
         Your cart is empty.
       </div>
     );
-
-  const printingRateLabel =
-    printingPerSide > 0
-      ? `₹${safeNum(printingPerSide).toFixed(2)}/side`
-      : `${safeNum(printPerUnit).toFixed(2)}/unit`;
-  const pfLabel =
-    pfFlat > 0
-      ? `${safeNum(pfPerUnit).toFixed(2)}/unit + flat ₹${safeNum(pfFlat).toFixed(
-          2
-        )}`
-      : `${safeNum(pfPerUnit).toFixed(2)}/unit`;
 
   return (
     <div className="min-h-screen text-white p-8">
@@ -445,19 +430,23 @@ const Cart = () => {
                 <span className="text-gray-300">Subtotal</span>
                 <span>{formatINR(subtotal)}</span>
               </div>
+
+              {/* ✅ Commented P&F & Printing UI */}
+              {/*
               <div className="flex justify-between">
-                <span className="text-gray-300">P&F ({pfLabel})</span>
+                <span className="text-gray-300">P&F</span>
                 <span>{formatINR(pfTotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-300">
-                  Printing ({printingRateLabel}
-                  {printingPerSide > 0 ? ` • ${printingUnits} sides` : ""})
-                </span>
+                <span className="text-gray-300">Printing</span>
                 <span>{formatINR(printTotal)}</span>
               </div>
+              */}
+
               <div className="flex justify-between">
-                <span className="text-gray-300">GST ({safeNum(gstPercent).toFixed(2)}%)</span>
+                <span className="text-gray-300">
+                  GST ({safeNum(gstPercent).toFixed(2)}%)
+                </span>
                 <span>{formatINR(gstTotal)}</span>
               </div>
             </div>
@@ -558,7 +547,7 @@ const Cart = () => {
                 price: item.price,
               };
             }),
-            charges: { pf: pfTotal, pfFlat, printing: printTotal },
+            //charges: { pf: pfTotal, pfFlat, printing: printTotal },   comment out pf charges to show!!
             tax: {
               cgstRate: safeNum(gstPercent / 2),
               sgstRate: safeNum(gstPercent / 2),
