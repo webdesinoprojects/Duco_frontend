@@ -339,6 +339,20 @@ const TshirtDesigner = () => {
         null;
       upsert(size, vid);
     });
+    // ✅ Fallback: if product itself has printroveVariantId or pricing[0] variant
+if (!Object.keys(map).length) {
+  const directVariant =
+    details?.printroveVariantId ||
+    details?.pricing?.[0]?.printrove_variant_id ||
+    details?.pricing?.[0]?.variant_id ||
+    details?.pricing?.[0]?.printroveVariantId;
+  if (directVariant) {
+    // default assign all canonical sizes to this variant (for single variant products)
+    ["S", "M", "L", "XL", "2XL", "3XL"].forEach((s) =>
+      upsert(s, directVariant)
+    );
+  }
+}
 
     // 2) product-level pricing[]
     coerceList(details?.pricing).forEach((p) => {
@@ -589,9 +603,11 @@ const TshirtDesigner = () => {
         id: productDetails?._id || proid,
         _id: productDetails?._id || proid,
         printroveProductId: printroveProductId || null,
+        printroveVariantId: fallbackVariantId || null, // legacy single
         legacyVariant: fallbackVariantId,
         lineItems: printroveLineItems,
         needsMapping: customProduct?.printroveNeedsMapping,
+        
       });
 
       addToCart(customProduct);

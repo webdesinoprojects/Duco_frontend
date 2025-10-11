@@ -68,6 +68,11 @@ export const CartProvider = ({ children }) => {
       };
 
       console.log("🧾 Added to cart:", finalData);
+      console.log("✅ Check IDs →", {
+            printroveProductId: finalData.printroveProductId,
+            printroveVariantId: finalData.printroveVariantId,
+});
+
       if (!finalData.printroveProductId || !finalData.printroveVariantId) {
         console.warn("⚠️ Missing Printrove IDs in cart item:", finalData);
       }

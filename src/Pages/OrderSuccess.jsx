@@ -110,7 +110,12 @@ const InvoiceDucoTailwind = ({ data }) => {
           {items.map((it, i) => (
             <tr key={i} style={{ borderBottom: "1px solid #ddd" }}>
               <td style={{ padding: "6px" }}>{i + 1}</td>
-              <td style={{ padding: "6px" }}>{it.description}</td>
+              <td style={{ padding: "6px" }}>
+                {it.description}
+                {it.printSides && it.printSides > 0
+                  ? ` • ${it.printSides} sides × ${it.qty}`
+                  : ""}
+              </td>
               <td style={{ padding: "6px" }}>{it.qty}</td>
               <td style={{ padding: "6px" }}>{it.unit}</td>
               <td style={{ padding: "6px" }}>₹{it.price}</td>
@@ -157,12 +162,6 @@ const InvoiceDucoTailwind = ({ data }) => {
               <td style={{ padding: "6px" }}>Printing Charges:</td>
               <td style={{ textAlign: "right", padding: "6px" }}>
                 ₹{charges.printing.toFixed(2)}
-              </td>
-            </tr>
-            <tr>
-              <td style={{ padding: "6px" }}>Total GST (5%):</td>
-              <td style={{ textAlign: "right", padding: "6px" }}>
-                ₹{(tax.cgstAmount + tax.sgstAmount).toFixed(2)}
               </td>
             </tr>
             <tr>
@@ -239,7 +238,7 @@ export default function OrderSuccess() {
   console.log("💳 Payment Mode:", paymentMethod);
   console.log("🏢 Order Type:", isB2B ? "B2B" : "B2C");
 
-  /* ✅ FIXED INVOICE LOGIC: accurate charges + gst like cart */
+  /* ✅ FIXED INVOICE LOGIC: accurate charges + gst like cart + side printing info */
   useEffect(() => {
     async function fetchInvoice() {
       try {
@@ -249,9 +248,12 @@ export default function OrderSuccess() {
         const inv = res?.invoice;
         if (!inv) throw new Error("No invoice found");
 
-        const items = inv.items || [];
+        const items = inv.items?.map((it, i) => ({
+          ...it,
+          sno: i + 1,
+          printSides: it.printSides || it.sides || 0,
+        })) || [];
 
-        // ✅ Consistent with cart & Razorpay invoice logic
         const subtotal = items.reduce(
           (sum, item) => sum + Number(item.qty || 0) * Number(item.price || 0),
           0
@@ -259,9 +261,7 @@ export default function OrderSuccess() {
 
         const pf = Number(inv.charges?.pf ?? inv.pfCharges ?? 0);
         const printing = Number(inv.charges?.printing ?? inv.printingCharges ?? 0);
-
-        const gstRate =
-          inv.tax?.igstRate ?? inv.tax?.gstRate ?? inv.gstRate ?? 5;
+        const gstRate = inv.tax?.igstRate ?? inv.tax?.gstRate ?? inv.gstRate ?? 5;
         const gstTotal =
           inv.tax?.igstAmount ??
           inv.gstTotal ??
