@@ -32,7 +32,18 @@ const InvoiceDucoTailwind = ({ data }) => {
     total,
     terms,
     forCompany,
+    locationTax,
   } = data;
+
+  // Compute actual numeric location adjustment
+  const locationAdj =
+    locationTax?.percentage
+      ? ((subtotal + (charges?.pf || 0) + (charges?.printing || 0)) *
+          locationTax.percentage) /
+        100
+      : 0;
+
+  const adjustedTotal = total + locationAdj;
 
   return (
     <div
@@ -164,6 +175,23 @@ const InvoiceDucoTailwind = ({ data }) => {
                 ₹{charges.printing.toFixed(2)}
               </td>
             </tr>
+
+            {/* ✅ Location-based Adjustment */}
+            {locationTax && locationTax.percentage ? (
+              <tr>
+                <td style={{ padding: "6px" }}>
+                  Location Adjustment ({locationTax.country})
+                </td>
+                <td style={{ textAlign: "right", padding: "6px" }}>
+                  +{locationTax.percentage}%{" "}
+                  {locationTax.currency?.country
+                    ? `(${locationTax.currency.country})`
+                    : ""}
+                  <br />₹{locationAdj.toFixed(2)}
+                </td>
+              </tr>
+            ) : null}
+
             <tr>
               <td style={{ padding: "6px" }}>
                 CGST ({tax.cgstRate}%)
@@ -180,6 +208,7 @@ const InvoiceDucoTailwind = ({ data }) => {
                 ₹{tax.sgstAmount.toFixed(2)}
               </td>
             </tr>
+
             <tr
               style={{
                 borderTop: "2px solid #000",
@@ -189,7 +218,7 @@ const InvoiceDucoTailwind = ({ data }) => {
             >
               <td style={{ padding: "6px" }}>Grand Total:</td>
               <td style={{ textAlign: "right", padding: "6px" }}>
-                ₹{total.toFixed(2)}
+                ₹{adjustedTotal.toFixed(2)}
               </td>
             </tr>
           </tbody>
@@ -272,8 +301,16 @@ export default function OrderSuccess() {
         const cgstAmount = inv.tax?.cgstAmount ?? gstTotal / 2;
         const sgstAmount = inv.tax?.sgstAmount ?? gstTotal / 2;
 
+        // ✅ Add location-based adjustment
+        const locationTax = inv.locationTax || paymentMeta.locationTax || null;
+        const locationAdj =
+          locationTax?.percentage
+            ? ((subtotal + pf + printing) * locationTax.percentage) / 100
+            : 0;
+
         const total =
-          Number(inv.total ?? inv.totalPay) || subtotal + pf + printing + gstTotal;
+          Number(inv.total ?? inv.totalPay) ||
+          subtotal + pf + printing + gstTotal + locationAdj;
 
         const formatted = {
           ...inv,
@@ -282,6 +319,7 @@ export default function OrderSuccess() {
           tax: { cgstRate, sgstRate, cgstAmount, sgstAmount },
           subtotal,
           total,
+          locationTax,
         };
 
         console.log("🧾 Normalized Invoice for Success Page:", formatted);
@@ -350,6 +388,13 @@ export default function OrderSuccess() {
             <b>GST (5%):</b> ₹
             {(invoiceData.tax.cgstAmount + invoiceData.tax.sgstAmount).toFixed(2)}
           </p>
+          {invoiceData.locationTax?.percentage ? (
+            <p>
+              <b>Location Adjustment:</b>{" "}
+              +{invoiceData.locationTax.percentage}% (
+              {invoiceData.locationTax.country})
+            </p>
+          ) : null}
           <p>
             <b>Grand Total:</b> ₹{invoiceData.total.toFixed(2)}
           </p>

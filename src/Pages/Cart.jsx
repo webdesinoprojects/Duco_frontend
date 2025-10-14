@@ -3,13 +3,16 @@ import CartItem from "../Components/CartItem.jsx";
 import AddressManager from "../Components/AddressManager";
 import Loading from "../Components/Loading";
 import { CartContext } from "../ContextAPI/CartContext";
-import { getproducts, getChargePlanRates } from "../Service/APIservice";
+import { getproducts, getChargePlanRates, getUpdatePricesByLocation } from "../Service/APIservice"; // ✅ added
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { usePriceContext } from "../ContextAPI/PriceContext.jsx";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import JsBarcode from "jsbarcode";
+import axios from "axios"; // ✅ added
+
+const LOCATION_CACHE_KEY = "userLocationTax"; // ✅ cache key
 
 // ✅ Safe number parser
 const safeNum = (v, fallback = 0) => {
@@ -136,24 +139,20 @@ const InvoiceDucoTailwind = ({ data }) => {
         </tbody>
       </table>
 
-      {/* ✅ Commented out PF + Printing charge section to exclude from final */}
-      {/*
-      <div style={{ marginTop: "10px" }}>
-        <p>
-          P&F Charges: {formatINR(data.charges.pf)}
-          {data.charges.pfFlat > 0 ? ` (includes flat ₹${safeNum(data.charges.pfFlat).toFixed(2)})` : ""}
-        </p>
-        <p>Printing Charges: {formatINR(data.charges.printing)}</p>
-        <p>
-          CGST {data.tax.cgstRate}% = {formatINR(data.tax.cgstAmount)} <br />
-          SGST {data.tax.sgstRate}% = {formatINR(data.tax.sgstAmount)}
-        </p>
-      </div>
-      */}
-
       <h2 style={{ textAlign: "right", marginTop: "10px" }}>
         Subtotal: {formatINR(data.subtotal)}
       </h2>
+
+      {data.locationTax && (
+        <h2 style={{ textAlign: "right", marginTop: "5px" }}>
+          Location Adjustment ({data.locationTax.country}){" "}
+          {data.locationTax.percentage}%{" "}
+          {data.locationTax.currency?.country
+            ? `(${data.locationTax.currency.country})`
+            : ""}
+        </h2>
+      )}
+
       <h2 style={{ textAlign: "right", marginTop: "5px" }}>
         Grand Total: {formatINR(data.total)}
       </h2>
@@ -185,12 +184,62 @@ const Cart = () => {
   const { toConvert } = usePriceContext();
   const invoiceRef = useRef();
 
-  // Pricing knobs (persisted)
-  const [pfPerUnit, setPfPerUnit] = useState(0);
-  const [pfFlat, setPfFlat] = useState(0);
-  const [printPerUnit, setPrintPerUnit] = useState(0);
-  const [printingPerSide, setPrintingPerSide] = useState(0);
-  const [gstPercent, setGstPercent] = useState(0);
+  // ✅ Location-based
+  const [userCountry, setUserCountry] = useState("");
+  const [locationTax, setLocationTax] = useState(null);
+
+  // ✅ Detect user's location with caching
+  useEffect(() => {
+    const cached = JSON.parse(localStorage.getItem(LOCATION_CACHE_KEY));
+    if (
+      cached &&
+      cached.country &&
+      cached.timestamp &&
+      Date.now() - cached.timestamp < 1000 * 60 * 60 * 24
+    ) {
+      setUserCountry(cached.country);
+      setLocationTax(cached.locationTax);
+      toast.info(`Using saved location: ${cached.country}`);
+      return;
+    }
+
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+          const geoURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
+          const res = await axios.get(geoURL);
+          const results = res.data.results || [];
+          const countryComp = results[0]?.address_components.find((c) =>
+            c.types.includes("country")
+          );
+          const country = countryComp ? countryComp.long_name : "Unknown";
+          console.log(country)
+          setUserCountry(country);
+          const data = await getUpdatePricesByLocation(country);
+          if (data?.success) {
+            setLocationTax(data);
+            toast.success(
+              `Detected ${country}: +${data.percentage}% location price applied`
+            );
+            localStorage.setItem(
+              LOCATION_CACHE_KEY,
+              JSON.stringify({
+                country,
+                locationTax: data,
+                timestamp: Date.now(),
+              })
+            );
+          }
+        } catch (err) {
+          console.warn("Location detection failed:", err);
+        }
+      },
+      (err) => console.warn("Location permission denied:", err)
+    );
+  }, []);
 
   // ✅ Restore values from localStorage
   useEffect(() => {
@@ -234,7 +283,6 @@ const Cart = () => {
       });
       setCart(merged);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products]);
 
   const actualData = useMemo(() => {
@@ -245,7 +293,6 @@ const Cart = () => {
     });
   }, [cart, products]);
 
-  // ✅ Totals
   const totalQuantity = useMemo(
     () =>
       actualData.reduce(
@@ -272,7 +319,6 @@ const Cart = () => {
     [actualData]
   );
 
-  // ✅ Compute "printing units" = quantity × sides
   const printingUnits = useMemo(() => {
     return actualData.reduce((acc, item) => {
       const qty =
@@ -284,13 +330,17 @@ const Cart = () => {
   }, [actualData]);
 
   // ✅ Fetch P&F, Printing, GST logic
+  const [pfPerUnit, setPfPerUnit] = useState(0);
+  const [pfFlat, setPfFlat] = useState(0);
+  const [printPerUnit, setPrintPerUnit] = useState(0);
+  const [printingPerSide, setPrintingPerSide] = useState(0);
+  const [gstPercent, setGstPercent] = useState(0);
+
   useEffect(() => {
     const fetchRates = async () => {
       try {
         setLoadingRates(true);
         const res = await getChargePlanRates(totalQuantity || 1);
-
-        // Legacy shape
         if (res?.success && res?.data) {
           const pf = safeNum(res.data?.perUnit?.pakageingandforwarding, 0);
           const print = safeNum(res.data?.perUnit?.printingcost, 0);
@@ -300,7 +350,6 @@ const Cart = () => {
           setPrintPerUnit(print);
           setPrintingPerSide(0);
           setGstPercent(gst);
-
           localStorage.setItem(
             "orderSummary",
             JSON.stringify({
@@ -313,8 +362,6 @@ const Cart = () => {
           );
           return;
         }
-
-        // New plan shape
         if (res && (Array.isArray(res.slabs) || res.gstRate != null)) {
           const slab = pickSlab(res, totalQuantity || 0);
           const pfUnit = safeNum(slab?.pnfPerUnit, 0);
@@ -324,13 +371,11 @@ const Cart = () => {
             0
           );
           const gst = safeNum((res.gstRate ?? 0.05) * 100, 5);
-
           setPfPerUnit(pfUnit);
           setPfFlat(pfF);
           setPrintingPerSide(perSide);
           setPrintPerUnit(0);
           setGstPercent(gst);
-
           localStorage.setItem(
             "orderSummary",
             JSON.stringify({
@@ -349,20 +394,17 @@ const Cart = () => {
         setLoadingRates(false);
       }
     };
-
     if (subtotal > 0 && totalQuantity > 0) fetchRates();
   }, [subtotal, totalQuantity]);
 
-  // ✅ Calculate totals
-  // const pfTotal = safeNum(pfPerUnit) * totalQuantity + safeNum(pfFlat);
-  // const printingTotalBySide = safeNum(printingPerSide) * printingUnits;
-  // const printingTotalByUnit = safeNum(printPerUnit) * totalQuantity;
-  // const printTotal =
-  //   printingPerSide > 0 ? printingTotalBySide : printingTotalByUnit;
-
-  const gstTotal =
-    ((subtotal /* + pfTotal + printTotal */) * safeNum(gstPercent)) / 100;
-  const grandTotal = subtotal /* + pfTotal + printTotal */ + gstTotal;
+  const gstTotal = ((subtotal) * safeNum(gstPercent)) / 100;
+  const baseTotal = subtotal + gstTotal;
+  const grandTotal = useMemo(() => {
+    if (locationTax?.percentage) {
+      return baseTotal + (baseTotal * safeNum(locationTax.percentage)) / 100;
+    }
+    return baseTotal;
+  }, [baseTotal, locationTax]);
 
   const orderPayload = {
     items: actualData,
@@ -370,11 +412,12 @@ const Cart = () => {
     address,
     user,
     gst: gstPercent,
-    breakdown: {
-      subtotal,
-      gstTotal,
-      grandTotal,
+    locationAdjustment: {
+      country: userCountry,
+      percentage: locationTax?.percentage || 0,
+      currency: locationTax?.currency || {},
     },
+    breakdown: { subtotal, gstTotal, grandTotal },
   };
 
   const isB2B = actualData.some((x) => x.isCorporate);
@@ -383,7 +426,6 @@ const Cart = () => {
     : ["Pay Online"];
 
   if (loadingProducts) return <Loading />;
-
   if (!cart.length)
     return (
       <div className="p-8 text-center text-gray-400 text-xl">
@@ -417,7 +459,6 @@ const Cart = () => {
           ))}
         </div>
 
-        {/* ✅ ORDER SUMMARY */}
         <div className="lg:w-96 flex flex-col">
           <div
             className="lg:w-96 h-fit rounded-sm p-6"
@@ -430,25 +471,20 @@ const Cart = () => {
                 <span className="text-gray-300">Subtotal</span>
                 <span>{formatINR(subtotal)}</span>
               </div>
-
-              {/* ✅ Commented P&F & Printing UI */}
-              {/*
-              <div className="flex justify-between">
-                <span className="text-gray-300">P&F</span>
-                <span>{formatINR(pfTotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-300">Printing</span>
-                <span>{formatINR(printTotal)}</span>
-              </div>
-              */}
-
               <div className="flex justify-between">
                 <span className="text-gray-300">
                   GST ({safeNum(gstPercent).toFixed(2)}%)
                 </span>
                 <span>{formatINR(gstTotal)}</span>
               </div>
+              {locationTax && (
+                <div className="flex justify-between">
+                  <span className="text-gray-300">
+                    Location Adjustment ({locationTax.location})
+                  </span>
+                  <span>+{safeNum(locationTax.percentage).toFixed(2)}%</span>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between border-t border-gray-600 pt-4 mb-6">
@@ -481,14 +517,7 @@ const Cart = () => {
                   const pdf = new jsPDF("p", "mm", "a4");
                   const pageWidth = pdf.internal.pageSize.getWidth();
                   const ratio = pageWidth / canvas.width;
-                  pdf.addImage(
-                    imgData,
-                    "PNG",
-                    0,
-                    10,
-                    pageWidth,
-                    canvas.height * ratio
-                  );
+                  pdf.addImage(imgData, "PNG", 0, 10, pageWidth, canvas.height * ratio);
                   pdf.save("Invoice_Test.pdf");
                 });
               }}
@@ -508,7 +537,7 @@ const Cart = () => {
         </div>
       </div>
 
-      {/* ✅ Hidden Invoice */}
+      {/* ✅ Hidden Invoice Section for PDF generation */}
       <div ref={invoiceRef} style={{ display: "block" }}>
         <InvoiceDucoTailwind
           data={{
@@ -547,7 +576,6 @@ const Cart = () => {
                 price: item.price,
               };
             }),
-            //charges: { pf: pfTotal, pfFlat, printing: printTotal },   comment out pf charges to show!!
             tax: {
               cgstRate: safeNum(gstPercent / 2),
               sgstRate: safeNum(gstPercent / 2),
@@ -561,6 +589,11 @@ const Cart = () => {
             forCompany: "DUCO ART PRIVATE LIMITED",
             subtotal,
             total: grandTotal,
+            locationTax: {
+              country: userCountry,
+              percentage: locationTax?.percentage || 0,
+              currency: locationTax?.currency || {},
+            },
           }}
         />
       </div>
