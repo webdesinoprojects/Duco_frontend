@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { createOrUpdatePrice, fetchAllPrices } from '../Service/APIservice';
+import React, { useState, useEffect } from "react";
+import { createOrUpdatePrice, fetchAllPrices } from "../Service/APIservice";
 
 const MoneySet = () => {
-  const [location, setLocation] = useState('');
-  const [priceIncrease, setPriceIncrease] = useState('');
-  const [currencyCountry, setCurrencyCountry] = useState('');  // For the country field
-  const [currencyConvert, setCurrencyConvert] = useState('');  // For the toconvert field
+  const [location, setLocation] = useState("");
+  const [aliases, setAliases] = useState(""); // ✅ new field
+  const [priceIncrease, setPriceIncrease] = useState("");
+  const [currencyCountry, setCurrencyCountry] = useState("");
+  const [currencyConvert, setCurrencyConvert] = useState("");
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
 
   const fetchPrices = async () => {
     try {
       setLoading(true);
       const data = await fetchAllPrices();
-      console.log(data);
       setEntries(data);
     } catch (err) {
       console.error(err);
@@ -27,29 +27,45 @@ const MoneySet = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validating the required fields
-    if (!location || priceIncrease === '' || !currencyCountry || !currencyConvert) {
+    console.log("🚀 Submit clicked with values:", {
+      location,
+      aliases,
+      priceIncrease,
+      currencyCountry,
+      currencyConvert,
+    });
+
+    if (
+      !location ||
+      priceIncrease === "" ||
+      !currencyCountry ||
+      !currencyConvert
+    ) {
       setMessage("Location, Price Increase, and Currency details are required");
       return;
     }
 
     try {
-      // Send the location, price_increase, and currency details to the backend
       const result = await createOrUpdatePrice({
         location,
         price_increase: Number(priceIncrease),
         currency: {
           country: currencyCountry,
-          toconvert: Number(currencyConvert)
-        }
+          toconvert: Number(currencyConvert),
+        },
+        aliases: aliases
+          ? aliases.split(",").map((a) => a.trim()) // ✅ send as array
+          : [],
       });
+      console.log("✅ API Response:", result);
 
       setMessage(result.message);
-      setLocation('');
-      setPriceIncrease('');
-      setCurrencyCountry('');
-      setCurrencyConvert('');
-      fetchPrices(); // refresh the list after submission
+      setLocation("");
+      setAliases("");
+      setPriceIncrease("");
+      setCurrencyCountry("");
+      setCurrencyConvert("");
+      fetchPrices();
     } catch (err) {
       console.error(err);
       setMessage("Error saving data");
@@ -66,7 +82,10 @@ const MoneySet = () => {
 
       {message && <p className="mb-3 text-green-600">{message}</p>}
 
-      <form onSubmit={handleSubmit} className="mb-6 space-y-4 bg-gray-100 p-4 rounded">
+      <form
+        onSubmit={handleSubmit}
+        className="mb-6 space-y-4 bg-gray-100 p-4 rounded"
+      >
         <div>
           <label className="block mb-1 font-medium">Location</label>
           <input
@@ -75,6 +94,20 @@ const MoneySet = () => {
             onChange={(e) => setLocation(e.target.value)}
             className="w-full p-2 border rounded"
             required
+          />
+        </div>
+
+        {/* ✅ New Aliases Field */}
+        <div>
+          <label className="block mb-1 font-medium">
+            Aliases (comma-separated)
+          </label>
+          <input
+            type="text"
+            value={aliases}
+            onChange={(e) => setAliases(e.target.value)}
+            placeholder="Example: USA, US, United States of America"
+            className="w-full p-2 border rounded"
           />
         </div>
 
@@ -101,7 +134,9 @@ const MoneySet = () => {
         </div>
 
         <div>
-          <label className="block mb-1 font-medium">Currency Conversion Rate</label>
+          <label className="block mb-1 font-medium">
+            Currency Conversion Rate
+          </label>
           <input
             type="number"
             value={currencyConvert}
@@ -126,11 +161,26 @@ const MoneySet = () => {
         <div className="space-y-2">
           {entries.map((entry, index) => (
             <div key={index} className="border p-3 rounded bg-white shadow-sm">
-              <p><strong>Location:</strong> {entry.location}</p>
-              <p><strong>Price Increase:</strong> %{entry.price_increase}</p>
-              <p><strong>Currency Country:</strong> {entry.currency?.country}</p>
-              <p><strong>Currency Conversion Rate:</strong> {entry.currency?.toconvert}</p>
-              <p className="text-sm text-gray-500"><strong>Updated:</strong> {new Date(entry.time_stamp).toLocaleString()}</p>
+              <p>
+                <strong>Location:</strong> {entry.location}
+              </p>
+              <p>
+                <strong>Aliases:</strong> {entry.aliases?.join(", ") || "—"}
+              </p>
+              <p>
+                <strong>Price Increase:</strong> %{entry.price_increase}
+              </p>
+              <p>
+                <strong>Currency Country:</strong> {entry.currency?.country}
+              </p>
+              <p>
+                <strong>Currency Conversion Rate:</strong>{" "}
+                {entry.currency?.toconvert}
+              </p>
+              <p className="text-sm text-gray-500">
+                <strong>Updated:</strong>{" "}
+                {new Date(entry.time_stamp).toLocaleString()}
+              </p>
             </div>
           ))}
         </div>

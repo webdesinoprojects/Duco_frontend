@@ -4,7 +4,7 @@ import Navbar from "./Components/Navbar.jsx";
 import Footer from "./Components/Footer.jsx";
 import { UserContext } from "./ContextAPI/UserContext.jsx";
 import Signup from "./Components/Signup.jsx";
-import ProductMegaMenu from "./Components/ProductMegaMenuXX.jsx"; // Adjust the import path as necessary
+import ProductMegaMenu from "./Components/ProductMegaMenuXX.jsx"; 
 
 const Layout = () => {
   const { user, login, logout } = useContext(UserContext);

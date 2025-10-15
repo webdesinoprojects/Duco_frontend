@@ -33,14 +33,13 @@ const ProductPage = () => {
   const [selectedColorCode, setSelectedColorCode] = useState("");
   const [selectedSize, setSelectedSize] = useState("M");
   const [price, setPrice] = useState(0);
-  const [print, setPrint] = useState("");
   const stored = localStorage.getItem("user");
   const user = stored ? JSON.parse(stored) : null;
   const { toConvert, priceIncrease } = usePriceContext();
   const [showModal, setShowModal] = useState(false);
   const [colortext, setColortext] = useState(null);
   const [selectedDesign, setSelectedDesign] = useState(null);
-  const [product, setProduct] = useState();
+  const [product, setProduct] = useState(null);
   const [defaultColorGroup, setDefaultColorGroup] = useState(null);
   const [designs, setDesigns] = useState([]);
   const [loadingDesigns, setLoadingDesigns] = useState(false);
@@ -53,7 +52,7 @@ const ProductPage = () => {
   const [gender, setGender] = useState("");
   const [iscount, setIscount] = useState(0);
 
-  // Fetch product
+  // Effect 1: Fetch product once when ID changes
   useEffect(() => {
     const fetchProduct = async () => {
       const data = await getproductssingle(id);
@@ -65,19 +64,27 @@ const ProductPage = () => {
         setColortext(p.image_url?.[0]?.color);
         setGender(p.gender);
 
-        const calculated = calculatePrice(
-          toConvert,
-          p?.pricing?.[0]?.price_per,
-          priceIncrease
-        );
-        setPrice(Math.round(calculated)); // 👈 always round to integer
-      }
-      if (!priceIncrease) {
-        navigate("/");
+        // fallback base price
+        const basePrice = p?.pricing?.[0]?.price_per || 0;
+        setPrice(basePrice);
       }
     };
     fetchProduct();
   }, [id]);
+
+  // Effect 2: Recalculate price when location-based context is ready
+  useEffect(() => {
+    if (!product) return;
+    const basePrice = product?.pricing?.[0]?.price_per || 0;
+
+    if (toConvert != null && priceIncrease != null) {
+      const actualPrice = toConvert * basePrice;
+      const finalPrice = actualPrice + actualPrice * (priceIncrease / 100);
+      setPrice(Math.round(finalPrice));
+    } else {
+      setPrice(basePrice);
+    }
+  }, [toConvert, priceIncrease, product]);
 
   // Load previous designs
   useEffect(() => {
@@ -99,11 +106,6 @@ const ProductPage = () => {
       setColortext(colortext);
       setIscount(0);
     }
-  };
-
-  const calculatePrice = (currency, basePrice, high) => {
-    const actualPrice = currency * basePrice;
-    return actualPrice + actualPrice * (high / 100);
   };
 
   const handleQty = (k, v) => {
@@ -147,6 +149,8 @@ const ProductPage = () => {
             {product?.products_name}
           </h1>
           <p className="text-2xl font-semibold">₹{price}</p>
+
+          {/* Features */}
           <ul className="grid grid-cols-2 gap-1 text-sm text-white">
             <li>
               <FaCheckCircle className="inline mr-1 text-green-600" />
@@ -182,7 +186,7 @@ const ProductPage = () => {
             </li>
           </ul>
 
-          {/* Available Colors */}
+          {/* Colors */}
           <div>
             <h3 className="font-semibold mb-2 flex items-center gap-2">
               <MdOutlineColorLens /> Available Colors
@@ -226,6 +230,7 @@ const ProductPage = () => {
             </div>
           </div>
 
+          {/* Buy Now */}
           <button
             onClick={() => {
               if (!user) {
@@ -233,18 +238,16 @@ const ProductPage = () => {
                 setIsOpenLog(true);
                 return;
               }
-
               const allZero = Object.values(qty).every((value) => value <= 0);
               if (allZero) {
                 toast.error("Please select at least one size");
                 return;
               }
-
               setShowModal(true);
             }}
             className="bg-[#E5C870] hover:bg-green-600 text-black w-full text-xl font-bold py-3 rounded"
           >
-            Buy Now{" "}
+            Buy Now
           </button>
 
           {/* Previous Designs */}
@@ -320,7 +323,6 @@ const ProductPage = () => {
             <div className="space-y-4 mb-6">
               <button
                 onClick={() => {
-                  // 👈 always store integer price
                   addToCart({
                     id,
                     design: [],
@@ -337,20 +339,20 @@ const ProductPage = () => {
               >
                 Regular T-Shirt
               </button>
-            <button
-  onClick={() => {
-    navigate(
-      `/design/${id}/${selectedColorCode.replace("#", "")}`,
-      { state: { quantity: qty } } // ✅ Pass selected quantities to designer
-    );
-    setShowModal(false);
-  }}
-  className="w-full bg-[#E5C870] text-black py-2 rounded-md hover:bg-green-600 transition-all"
->
-  Design T-Shirt
-</button>
-
-
+              <button
+                onClick={() => {
+                  navigate(
+                    `/design/${id}/${selectedColorCode.replace("#", "")}`,
+                    {
+                      state: { quantity: qty },
+                    }
+                  );
+                  setShowModal(false);
+                }}
+                className="w-full bg-[#E5C870] text-black py-2 rounded-md hover:bg-green-600 transition-all"
+              >
+                Design T-Shirt
+              </button>
             </div>
             <button
               onClick={() => setShowModal(false)}
