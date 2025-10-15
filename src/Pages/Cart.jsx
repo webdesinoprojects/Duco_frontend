@@ -3,7 +3,11 @@ import CartItem from "../Components/CartItem.jsx";
 import AddressManager from "../Components/AddressManager";
 import Loading from "../Components/Loading";
 import { CartContext } from "../ContextAPI/CartContext";
-import { getproducts, getChargePlanRates, getUpdatePricesByLocation } from "../Service/APIservice"; // ✅ added
+import {
+  getproducts,
+  getChargePlanRates,
+  getUpdatePricesByLocation,
+} from "../Service/APIservice"; // ✅ added
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { usePriceContext } from "../ContextAPI/PriceContext.jsx";
@@ -216,7 +220,12 @@ const Cart = () => {
             c.types.includes("country")
           );
           const country = countryComp ? countryComp.long_name : "Unknown";
-          console.log(country)
+          if (country === "Unknown") {
+            console.warn(
+              "⚠ Could not detect country, skipping location-based pricing"
+            );
+            return;
+          }
           setUserCountry(country);
           const data = await getUpdatePricesByLocation(country);
           if (data?.success) {
@@ -322,8 +331,10 @@ const Cart = () => {
   const printingUnits = useMemo(() => {
     return actualData.reduce((acc, item) => {
       const qty =
-        Object.values(item.quantity || {}).reduce((a, q) => a + safeNum(q), 0) ||
-        0;
+        Object.values(item.quantity || {}).reduce(
+          (a, q) => a + safeNum(q),
+          0
+        ) || 0;
       const sides = countDesignSides(item);
       return acc + qty * sides;
     }, 0);
@@ -397,7 +408,7 @@ const Cart = () => {
     if (subtotal > 0 && totalQuantity > 0) fetchRates();
   }, [subtotal, totalQuantity]);
 
-  const gstTotal = ((subtotal) * safeNum(gstPercent)) / 100;
+  const gstTotal = (subtotal * safeNum(gstPercent)) / 100;
   const baseTotal = subtotal + gstTotal;
   const grandTotal = useMemo(() => {
     if (locationTax?.percentage) {
@@ -464,7 +475,9 @@ const Cart = () => {
             className="lg:w-96 h-fit rounded-sm p-6"
             style={{ backgroundColor: "#112430" }}
           >
-            <h2 className="text-2xl font-bold mb-6 text-white">ORDER SUMMARY</h2>
+            <h2 className="text-2xl font-bold mb-6 text-white">
+              ORDER SUMMARY
+            </h2>
 
             <div className="space-y-4 mb-8">
               <div className="flex justify-between">
@@ -512,14 +525,23 @@ const Cart = () => {
               onClick={() => {
                 const input = invoiceRef.current;
                 if (!input) return;
-                html2canvas(input, { scale: 2, useCORS: true }).then((canvas) => {
-                  const imgData = canvas.toDataURL("image/png");
-                  const pdf = new jsPDF("p", "mm", "a4");
-                  const pageWidth = pdf.internal.pageSize.getWidth();
-                  const ratio = pageWidth / canvas.width;
-                  pdf.addImage(imgData, "PNG", 0, 10, pageWidth, canvas.height * ratio);
-                  pdf.save("Invoice_Test.pdf");
-                });
+                html2canvas(input, { scale: 2, useCORS: true }).then(
+                  (canvas) => {
+                    const imgData = canvas.toDataURL("image/png");
+                    const pdf = new jsPDF("p", "mm", "a4");
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const ratio = pageWidth / canvas.width;
+                    pdf.addImage(
+                      imgData,
+                      "PNG",
+                      0,
+                      10,
+                      pageWidth,
+                      canvas.height * ratio
+                    );
+                    pdf.save("Invoice_Test.pdf");
+                  }
+                );
               }}
               disabled={!actualData.length}
               className="mt-4 w-full py-3 rounded bg-black text-white hover:opacity-90 disabled:opacity-40 cursor-pointer"

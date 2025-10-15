@@ -19,6 +19,7 @@ export const createOrUpdatePrice = async (data) => {
 // ✅ Added: Get price increase by location (used in Cart.jsx)
 export const getUpdatePricesByLocation = async (location) => {
   try {
+    console.log(location);
     const res = await axios.post(
       `${API_BASE}money/get_location_increase`,
       { location },
@@ -176,7 +177,10 @@ export async function completeOrder(paymentId, paymentmode, orderData) {
     console.log("✅ Order created successfully:", res.data);
     return res.data; // { success, order }
   } catch (err) {
-    console.error("❌ Error creating order:", err.response?.data || err.message);
+    console.error(
+      "❌ Error creating order:",
+      err.response?.data || err.message
+    );
     throw err;
   }
 }
@@ -269,7 +273,13 @@ export const getChargePlanRates = async (qty = 1) => {
       slabs: [
         { min: 1, max: 9, printingPerSide: 69, pnfPerUnit: 0, pnfFlat: 25 },
         { min: 10, max: 49, printingPerSide: 49, pnfPerUnit: 0, pnfFlat: 25 },
-        { min: 50, max: 999999, printingPerSide: 39, pnfPerUnit: 0, pnfFlat: 25 },
+        {
+          min: 50,
+          max: 999999,
+          printingPerSide: 39,
+          pnfPerUnit: 0,
+          pnfFlat: 25,
+        },
       ],
       gstRate: 0.05, // 5%
     };
