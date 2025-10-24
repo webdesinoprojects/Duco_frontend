@@ -11,17 +11,42 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import JsBarcode from "jsbarcode";
 
+const currencySymbols = {
+  INR: "₹", // Indian Rupee
+  USD: "$", // US Dollar
+  AED: "د.إ", // UAE Dirham
+  EUR: "€", // Euro
+  GBP: "£", // British Pound
+  AUD: "A$", // Australian Dollar 🇦🇺
+  CAD: "C$", // Canadian Dollar 🇨🇦
+  SGD: "S$", // Singapore Dollar 🇸🇬
+  NZD: "NZ$", // New Zealand Dollar 🇳🇿
+  CHF: "CHF", // Swiss Franc 🇨🇭
+  JPY: "¥", // Japanese Yen 🇯🇵
+  CNY: "¥", // Chinese Yuan 🇨🇳
+  HKD: "HK$", // Hong Kong Dollar 🇭🇰
+  MYR: "RM", // Malaysian Ringgit 🇲🇾
+  THB: "฿", // Thai Baht 🇹🇭
+  SAR: "﷼", // Saudi Riyal 🇸🇦
+  QAR: "ر.ق", // Qatari Riyal 🇶🇦
+  KWD: "KD", // Kuwaiti Dinar 🇰🇼
+  BHD: "BD", // Bahraini Dinar 🇧🇭
+  OMR: "﷼", // Omani Rial 🇴🇲
+  ZAR: "R", // South African Rand 🇿🇦
+  PKR: "₨", // Pakistani Rupee 🇵🇰
+  LKR: "Rs", // Sri Lankan Rupee 🇱🇰
+  BDT: "৳", // Bangladeshi Taka 🇧🇩
+  NPR: "रू", // Nepalese Rupee 🇳🇵
+  PHP: "₱", // Philippine Peso 🇵🇭
+  IDR: "Rp", // Indonesian Rupiah 🇮🇩
+  KRW: "₩", // South Korean Won 🇰🇷
+};
+
 /* ----------------- Helpers ----------------- */
 const safeNum = (v, fallback = 0) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 };
-
-const formatINR = (num) =>
-  "₹" +
-  safeNum(num, 0)
-    .toFixed(2)
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
 // ✅ Count printed sides
 const countDesignSides = (item) => {
@@ -126,14 +151,16 @@ const InvoiceDucoTailwind = ({ data }) => {
               <td style={{ padding: "6px" }}>{it.description}</td>
               <td style={{ padding: "6px" }}>{it.qty}</td>
               <td style={{ padding: "6px" }}>{it.unit}</td>
-              <td style={{ padding: "6px" }}>{formatINR(it.price)}</td>
+              <td style={{ padding: "6px" }}>
+                {data.formatCurrency(it.price)}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <h2 style={{ textAlign: "right", marginTop: "10px" }}>
-        Subtotal: {formatINR(data.subtotal)}
+        Subtotal: {data.formatCurrency(data.subtotal)}
       </h2>
 
       {data.locationTax?.percentage > 0 && (
@@ -149,19 +176,19 @@ const InvoiceDucoTailwind = ({ data }) => {
       {/* ✅ GST Breakdown */}
       <h2 style={{ textAlign: "right", marginTop: "5px" }}>
         CGST ({(data.gstPercent / 2).toFixed(1)}%):{" "}
-        {formatINR((data.subtotal * (data.gstPercent / 100)) / 2)}
+        {data.formatCurrency((data.subtotal * (data.gstPercent / 100)) / 2)}
       </h2>
       <h2 style={{ textAlign: "right", marginTop: "5px" }}>
         SGST ({(data.gstPercent / 2).toFixed(1)}%):{" "}
-        {formatINR((data.subtotal * (data.gstPercent / 100)) / 2)}
+        {data.formatCurrency((data.subtotal * (data.gstPercent / 100)) / 2)}
       </h2>
       <h2 style={{ textAlign: "right", marginTop: "5px" }}>
         Total GST ({data.gstPercent}%):{" "}
-        {formatINR(data.subtotal * (data.gstPercent / 100))}
+        {data.formatCurrency(data.subtotal * (data.gstPercent / 100))}
       </h2>
 
       <h2 style={{ textAlign: "right", marginTop: "5px" }}>
-        Grand Total: {formatINR(data.total)}
+        Grand Total: {data.formatCurrency(data.total)}
       </h2>
     </div>
   );
@@ -180,6 +207,15 @@ const Cart = () => {
   const navigate = useNavigate();
   const invoiceRef = useRef();
 
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
+  const [conversionRate, setConversionRate] = useState(1);
+
+  // ✅ Dynamic Currency Formatter (now has access to states)
+  const formatCurrency = (num) =>
+    `${currencySymbol}${Math.round(safeNum(num, 0) * safeNum(conversionRate, 1))
+      .toString()
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+
   // ✅ Load user from localStorage so address API has userId
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -188,6 +224,17 @@ const Cart = () => {
 
   // ✅ PriceContext
   const { priceIncrease, currency, resolvedLocation } = usePriceContext();
+
+  useEffect(() => {
+    if (!currency) return;
+    setCurrencySymbol(currencySymbols[currency] || "₹");
+    const cached = JSON.parse(localStorage.getItem("locationPricing"));
+    if (cached && cached.currency?.toconvert) {
+      setConversionRate(Number(cached.currency.toconvert));
+    } else {
+      setConversionRate(1);
+    }
+  }, [currency]);
 
   /* ---------- Products ---------- */
   useEffect(() => {
@@ -251,17 +298,33 @@ const Cart = () => {
     }, 0);
   }, [actualData]);
 
-  const itemsSubtotal = useMemo(
-    () =>
-      actualData.reduce((sum, item) => {
-        const qty = Object.values(item.quantity || {}).reduce(
-          (a, q) => a + safeNum(q),
-          0
-        );
-        return sum + safeNum(item.price) * qty;
-      }, 0),
-    [actualData]
-  );
+  // ✅ Calculate printing cost based on the number of sides
+  const calculatePrintingCost = (item) => {
+    const sides = countDesignSides(item);
+    const costPerSide = 10; // You can change this value based on your pricing
+    return sides * costPerSide; // Total printing cost for the item
+  };
+
+  // ✅ Calculate custom design cost (for text or uploaded image)
+  const calculateDesignCost = (item) => {
+    const textCost = item?.design?.customText ? 20 : 0; // Example: ₹20 for custom text
+    const imageCost = item?.design?.uploadedImage ? 30 : 0; // Example: ₹30 for uploaded image
+    return textCost + imageCost; // Total design cost
+  };
+
+  const itemsSubtotal = useMemo(() => {
+    return actualData.reduce((sum, item) => {
+      const qty = Object.values(item.quantity || {}).reduce(
+        (a, q) => a + safeNum(q),
+        0
+      );
+      const basePrice = safeNum(item.price); // Base price from the product details
+      const printingCost = calculatePrintingCost(item); // Printing cost based on the sides
+      const designCost = calculateDesignCost(item); // Custom design cost (text/image)
+
+      return sum + (basePrice + printingCost + designCost) * qty; // Total price per item
+    }, 0);
+  }, [actualData]);
 
   const [pfPerUnit, setPfPerUnit] = useState(0);
   const [pfFlat, setPfFlat] = useState(0);
@@ -330,11 +393,20 @@ const Cart = () => {
   );
 
   const grandTotal = useMemo(() => {
+    let total = safeNum(baseTotal);
+
+    // Step 1: Apply % increase (e.g., location markup)
     if (priceIncrease) {
-      return baseTotal + (baseTotal * safeNum(priceIncrease)) / 100;
+      total += (total * safeNum(priceIncrease)) / 100;
     }
-    return baseTotal;
-  }, [baseTotal, priceIncrease]);
+
+    // Step 2: Convert to foreign currency
+    if (conversionRate && conversionRate !== 1) {
+      total *= conversionRate;
+    }
+
+    return Math.round(total);
+  }, [baseTotal, priceIncrease, conversionRate]);
 
   if (loadingProducts) return <Loading />;
   if (!cart.length)
@@ -382,19 +454,19 @@ const Cart = () => {
             <div className="space-y-3 mb-6">
               <div className="flex justify-between">
                 <span>Items Subtotal</span>
-                <span>{formatINR(itemsSubtotal)}</span>
+                <span>{formatCurrency(itemsSubtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Printing ({printingUnits} sides)</span>
-                <span>{formatINR(printingCost)}</span>
+                <span>{formatCurrency(printingCost)}</span>
               </div>
               <div className="flex justify-between">
                 <span>P&F</span>
-                <span>{formatINR(pfCost)}</span>
+                <span>{formatCurrency(pfCost)}</span>
               </div>
               <div className="flex justify-between">
                 <span>GST ({safeNum(gstPercent)}%)</span>
-                <span>{formatINR(gstTotal)}</span>
+                <span>{formatCurrency(gstTotal)}</span>
               </div>
               {priceIncrease && (
                 <div className="flex justify-between">
@@ -408,7 +480,7 @@ const Cart = () => {
 
             <div className="flex justify-between border-t pt-4 mb-6">
               <span className="font-bold">Total</span>
-              <span className="font-bold">{formatINR(grandTotal)}</span>
+              <span className="font-bold">{formatCurrency(grandTotal)}</span>
             </div>
 
             <button
@@ -531,8 +603,9 @@ const Cart = () => {
             locationTax: {
               country: resolvedLocation,
               percentage: priceIncrease || 0,
-              currency: { country: currency },
+              currency: { country: currency, toconvert: conversionRate },
             },
+            formatCurrency,
           }}
         />
       </div>

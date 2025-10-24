@@ -1,24 +1,61 @@
-import React, { useContext } from "react";
+import React, { useContext, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { CartContext } from "../ContextAPI/CartContext";
 import { usePriceContext } from "../ContextAPI/PriceContext";
 
+const currencySymbols = {
+  INR: "₹",
+  USD: "$",
+  AED: "د.إ",
+  EUR: "€",
+  GBP: "£",
+  AUD: "A$",
+  CAD: "C$",
+  SGD: "S$",
+  NZD: "NZ$",
+  CHF: "CHF",
+  JPY: "¥",
+  CNY: "¥",
+  HKD: "HK$",
+  MYR: "RM",
+  THB: "฿",
+  SAR: "﷼",
+  QAR: "ر.ق",
+  KWD: "KD",
+  BHD: "BD",
+  OMR: "﷼",
+  ZAR: "R",
+  PKR: "₨",
+  LKR: "Rs",
+  BDT: "৳",
+  NPR: "रू",
+  PHP: "₱",
+  IDR: "Rp",
+  KRW: "₩",
+};
+
 const BoxOfProducts = ({ price, title, id, image }) => {
   const colors = ["#FF0000", "#FF8A00", "#4A4AFF", "#FFFFFF", "#000000"];
   const { addtocart } = useContext(CartContext);
-  const { toConvert, priceIncrease, resolvedLocation } = usePriceContext();
+  const { toConvert, priceIncrease, resolvedLocation, currency } =
+    usePriceContext();
 
-  // ✅ Calculate final price and round down
-  const calculatePrice = (currency, ac, high) => {
-    const actualPrice = currency * ac;
-    const final = actualPrice + actualPrice * (high / 100);
-    return Math.floor(final);
-  };
+  const currencySymbol = currencySymbols[currency] || "₹";
 
-  const finalPrice =
-    toConvert != null && priceIncrease != null
-      ? calculatePrice(toConvert, price, priceIncrease)
-      : Math.floor(price);
+  // ✅ Corrected price calculation
+  const finalPrice = useMemo(() => {
+    let base = Number(price) || 0;
+
+    if (priceIncrease) {
+      base += (base * Number(priceIncrease)) / 100;
+    }
+
+    if (toConvert && toConvert !== 1) {
+      base *= Number(toConvert);
+    }
+
+    return Math.round(base);
+  }, [price, toConvert, priceIncrease]);
 
   return (
     <Link
@@ -63,7 +100,8 @@ const BoxOfProducts = ({ price, title, id, image }) => {
 
         <div className="flex justify-between items-center">
           <span className="text-lg font-bold text-gray-900">
-            ₹{finalPrice}
+            {currencySymbol}
+            {finalPrice}
             {resolvedLocation && (
               <span className="text-xs text-gray-500">
                 {" "}
@@ -82,7 +120,7 @@ const BoxOfProducts = ({ price, title, id, image }) => {
                 design: [],
                 color: "white",
                 quantity: 1,
-                price: finalPrice ?? Math.floor(price),
+                price: Number(finalPrice),
               });
             }}
             className="px-4 py-1.5 bg-[#E5C870] text-black text-sm font-medium rounded-full hover:bg-gray-800 hover:text-white transition"

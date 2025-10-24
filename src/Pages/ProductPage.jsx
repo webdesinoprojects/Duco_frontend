@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { FaCheckCircle } from "react-icons/fa";
 import { MdOutlineColorLens, MdOutlineStraighten } from "react-icons/md";
 import { useNavigate, useParams, useOutletContext } from "react-router-dom";
@@ -20,6 +20,38 @@ function useLayoutCtx() {
   return useOutletContext();
 }
 
+// ✅ Currency symbols map
+const currencySymbols = {
+  INR: "₹",
+  USD: "$",
+  AED: "د.إ",
+  EUR: "€",
+  GBP: "£",
+  AUD: "A$",
+  CAD: "C$",
+  SGD: "S$",
+  NZD: "NZ$",
+  CHF: "CHF",
+  JPY: "¥",
+  CNY: "¥",
+  HKD: "HK$",
+  MYR: "RM",
+  THB: "฿",
+  SAR: "﷼",
+  QAR: "ر.ق",
+  KWD: "KD",
+  BHD: "BD",
+  OMR: "﷼",
+  ZAR: "R",
+  PKR: "₨",
+  LKR: "Rs",
+  BDT: "৳",
+  NPR: "रू",
+  PHP: "₱",
+  IDR: "Rp",
+  KRW: "₩",
+};
+
 const PRICE_TIERS = [
   { range: "1", price: 510 },
   { range: "2 - 4", price: 467 },
@@ -35,7 +67,9 @@ const ProductPage = () => {
   const [price, setPrice] = useState(0);
   const stored = localStorage.getItem("user");
   const user = stored ? JSON.parse(stored) : null;
-  const { toConvert, priceIncrease } = usePriceContext();
+  const { toConvert, priceIncrease, currency, resolvedLocation } =
+    usePriceContext();
+  const [currencySymbol, setCurrencySymbol] = useState("₹");
   const [showModal, setShowModal] = useState(false);
   const [colortext, setColortext] = useState(null);
   const [selectedDesign, setSelectedDesign] = useState(null);
@@ -52,7 +86,7 @@ const ProductPage = () => {
   const [gender, setGender] = useState("");
   const [iscount, setIscount] = useState(0);
 
-  // Effect 1: Fetch product once when ID changes
+  // ✅ Fetch product
   useEffect(() => {
     const fetchProduct = async () => {
       const data = await getproductssingle(id);
@@ -63,8 +97,6 @@ const ProductPage = () => {
         setSelectedColorCode(p.image_url?.[0]?.colorcode || "#ffffff");
         setColortext(p.image_url?.[0]?.color);
         setGender(p.gender);
-
-        // fallback base price
         const basePrice = p?.pricing?.[0]?.price_per || 0;
         setPrice(basePrice);
       }
@@ -72,21 +104,29 @@ const ProductPage = () => {
     fetchProduct();
   }, [id]);
 
-  // Effect 2: Recalculate price when location-based context is ready
+  // ✅ Update symbol when currency changes
+  useEffect(() => {
+    if (currency) {
+      setCurrencySymbol(currencySymbols[currency] || "₹");
+    }
+  }, [currency]);
+
+  // ✅ Recalculate price when location-based context is ready
   useEffect(() => {
     if (!product) return;
     const basePrice = product?.pricing?.[0]?.price_per || 0;
 
-    if (toConvert != null && priceIncrease != null) {
-      const actualPrice = toConvert * basePrice;
-      const finalPrice = actualPrice + actualPrice * (priceIncrease / 100);
-      setPrice(Math.round(finalPrice));
-    } else {
-      setPrice(basePrice);
+    if (toConvert == null || priceIncrease == null) {
+      setPrice(Math.round(basePrice));
+      return;
     }
-  }, [toConvert, priceIncrease, product]);
 
-  // Load previous designs
+    let increased = basePrice + basePrice * (priceIncrease / 100);
+    let converted = increased * toConvert;
+    setPrice(Math.round(converted));
+  }, [product, toConvert, priceIncrease]);
+
+  // ✅ Load previous designs
   useEffect(() => {
     const loadDesigns = async () => {
       if (!user) return;
@@ -148,7 +188,16 @@ const ProductPage = () => {
           <h1 className="text-3xl font-bold text-[#E5C870]">
             {product?.products_name}
           </h1>
-          <p className="text-2xl font-semibold">₹{price}</p>
+
+          <p className="text-2xl font-semibold">
+            {currencySymbol}
+            {price}
+            {resolvedLocation && (
+              <span className="text-sm text-gray-400 ml-2">
+                ({resolvedLocation})
+              </span>
+            )}
+          </p>
 
           {/* Features */}
           <ul className="grid grid-cols-2 gap-1 text-sm text-white">
@@ -311,7 +360,7 @@ const ProductPage = () => {
         </div>
       </div>
 
-      <PriceTiers tiers={PRICE_TIERS} currencySymbol="₹" />
+      <PriceTiers tiers={PRICE_TIERS} currencySymbol={currencySymbol} />
       <CropTankSizeChart />
       <CropTanksTabs />
 
