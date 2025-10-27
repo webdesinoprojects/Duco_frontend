@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 
 const SIZE_ORDER = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
+=======
+import { useState, useEffect } from "react";
+
+const SIZE_ORDER = ["S", "M", "L", "XL", "2XL", "3XL"];
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
 function sortedEntries(quantity = {}) {
   return Object.entries(quantity || {}).sort(
@@ -34,16 +40,25 @@ const OrderDetailsCard = ({ orderId }) => {
   const [allProducts, setAllProducts] = useState([]); // ✅ store all products
 
   const statusOptions = [
+<<<<<<< HEAD
     'Pending',
     'Processing',
     'Shipped',
     'Delivered',
     'Cancelled',
+=======
+    "Pending",
+    "Processing",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   ];
 
   const handleStatusChange = async (newStatus) => {
     setOrder((prev) => ({ ...prev, status: newStatus }));
     try {
+<<<<<<< HEAD
       await fetch(`http://localhost:3000/api/order/update/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -51,11 +66,24 @@ const OrderDetailsCard = ({ orderId }) => {
       });
     } catch (err) {
       console.error('Failed to update status', err);
+=======
+      await fetch(
+        `https://duco-backend.onrender.com/api/order/update/${orderId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+    } catch (err) {
+      console.error("Failed to update status", err);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
+<<<<<<< HEAD
       case 'Pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'Processing':
@@ -68,6 +96,20 @@ const OrderDetailsCard = ({ orderId }) => {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+=======
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "Processing":
+        return "bg-blue-100 text-blue-800";
+      case "Shipped":
+        return "bg-indigo-100 text-indigo-800";
+      case "Delivered":
+        return "bg-green-100 text-green-800";
+      case "Cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     }
   };
 
@@ -75,6 +117,7 @@ const OrderDetailsCard = ({ orderId }) => {
   useEffect(() => {
     (async () => {
       try {
+<<<<<<< HEAD
         console.log('📡 Fetching order:', orderId);
         const res = await fetch(`http://localhost:3000/api/order/${orderId}`);
         const data = await res.json();
@@ -82,6 +125,17 @@ const OrderDetailsCard = ({ orderId }) => {
         setOrder(data);
       } catch (err) {
         console.error('❌ Failed to fetch order:', err);
+=======
+        console.log("📡 Fetching order:", orderId);
+        const res = await fetch(
+          `https://duco-backend.onrender.com/api/order/${orderId}`
+        );
+        const data = await res.json();
+        console.log("🧾 Order fetched:", data);
+        setOrder(data);
+      } catch (err) {
+        console.error("❌ Failed to fetch order:", err);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       } finally {
         setLoading(false);
       }
@@ -92,11 +146,19 @@ const OrderDetailsCard = ({ orderId }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+<<<<<<< HEAD
         const res = await fetch('http://localhost:3000/api/products');
         const data = await res.json();
         if (Array.isArray(data)) setAllProducts(data);
       } catch (err) {
         console.error('❌ Failed to fetch product list', err);
+=======
+        const res = await fetch("https://duco-backend.onrender.com/api/products");
+        const data = await res.json();
+        if (Array.isArray(data)) setAllProducts(data);
+      } catch (err) {
+        console.error("❌ Failed to fetch product list", err);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       }
     };
     fetchProducts();
@@ -114,11 +176,19 @@ const OrderDetailsCard = ({ orderId }) => {
             Order #{order._id}
           </h2>
           <p className="text-gray-600">
+<<<<<<< HEAD
             Placed on{' '}
             {new Date(order.createdAt).toLocaleDateString('en-IN', {
               day: '2-digit',
               month: 'long',
               year: 'numeric',
+=======
+            Placed on{" "}
+            {new Date(order.createdAt).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
             })}
           </p>
         </div>
@@ -131,7 +201,11 @@ const OrderDetailsCard = ({ orderId }) => {
             {order.status}
           </span>
           <select
+<<<<<<< HEAD
             value={order.status ?? ''}
+=======
+            value={order.status ?? ""}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
             onChange={(e) => handleStatusChange(e.target.value)}
             className="block w-40 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -152,8 +226,13 @@ const OrderDetailsCard = ({ orderId }) => {
             <p>{order.address?.fullName}</p>
             <p className="text-blue-600">{order.address?.mobileNumber}</p>
             <p className="text-gray-600">
+<<<<<<< HEAD
               {order.address?.houseNumber}, {order.address?.street},{' '}
               {order.address?.city}, {order.address?.state} -{' '}
+=======
+              {order.address?.houseNumber}, {order.address?.street},{" "}
+              {order.address?.city}, {order.address?.state} -{" "}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               {order.address?.pincode}
             </p>
           </div>
@@ -168,10 +247,17 @@ const OrderDetailsCard = ({ orderId }) => {
             </p>
             <p
               className={`font-medium ${
+<<<<<<< HEAD
                 order.razorpayPaymentId ? 'text-green-600' : 'text-yellow-600'
               }`}
             >
               Payment Status: {order.razorpayPaymentId ? 'Paid' : 'Unpaid'}
+=======
+                order.razorpayPaymentId ? "text-green-600" : "text-yellow-600"
+              }`}
+            >
+              Payment Status: {order.razorpayPaymentId ? "Paid" : "Unpaid"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
             </p>
           </div>
         </div>
@@ -236,7 +322,11 @@ const OrderDetailsCard = ({ orderId }) => {
                       const colorKey =
                         item.color?.toLowerCase?.() ||
                         item.colortext?.toLowerCase?.() ||
+<<<<<<< HEAD
                         '';
+=======
+                        "";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       const matched =
                         variants.find(
                           (v) =>
@@ -256,7 +346,11 @@ const OrderDetailsCard = ({ orderId }) => {
                         product?.images?.[0] ||
                         product?.image_url?.[0]?.image_url; // ✅ fallback for flat image_url array
 
+<<<<<<< HEAD
                       console.log('🧩 Final Image Picked:', {
+=======
+                      console.log("🧩 Final Image Picked:", {
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                         name: item.name,
                         productFound: !!product,
                         colorKey,
@@ -267,7 +361,11 @@ const OrderDetailsCard = ({ orderId }) => {
                       return imgSrc ? (
                         <img
                           src={imgSrc}
+<<<<<<< HEAD
                           alt={item.name || 'T-Shirt'}
+=======
+                          alt={item.name || "T-Shirt"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                           className="w-full h-full object-contain"
                         />
                       ) : (
@@ -281,6 +379,7 @@ const OrderDetailsCard = ({ orderId }) => {
                       {item.name ||
                         item.products_name ||
                         item.product?.products_name ||
+<<<<<<< HEAD
                         'Unnamed Design'}
                     </p>
 
@@ -291,6 +390,20 @@ const OrderDetailsCard = ({ orderId }) => {
                       </span>
                       &nbsp;|&nbsp; Qty:&nbsp;
                       <span className="font-medium">{item.qty || qtySum}</span>
+=======
+                        "Unnamed Design"}
+                    </p>
+
+                    <div className="text-sm text-gray-600 mt-1">
+                      Color:{" "}
+                      <span className="font-medium">
+                        {item.colortext || item.color || "-"}
+                      </span>
+                      &nbsp;|&nbsp; Qty:&nbsp;
+                      <span className="font-medium">
+                        {item.qty || qtySum}
+                      </span>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     </div>
 
                     <div className="mt-2">
@@ -305,7 +418,11 @@ const OrderDetailsCard = ({ orderId }) => {
 
                 {/* ✅ Design Preview Section */}
                 {Object.values(possibleViews).some(
+<<<<<<< HEAD
                   (v) => typeof v === 'string' && v.startsWith('data:image')
+=======
+                  (v) => typeof v === "string" && v.startsWith("data:image")
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 ) && (
                   <div className="mt-3">
                     <p className="text-sm font-medium text-gray-800 mb-2">
@@ -313,7 +430,11 @@ const OrderDetailsCard = ({ orderId }) => {
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {Object.entries(possibleViews).map(([view, img]) =>
+<<<<<<< HEAD
                         img && img.startsWith('data:image') ? (
+=======
+                        img && img.startsWith("data:image") ? (
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                           <div
                             key={view}
                             className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center"
@@ -349,9 +470,13 @@ const OrderDetailsCard = ({ orderId }) => {
                 <div className="mt-3 space-y-2">
                   {(design.uploadedLogo || design.uploaded_logo) && (
                     <div className="text-xs">
+<<<<<<< HEAD
                       <p className="font-medium text-gray-800">
                         Uploaded Logo:
                       </p>
+=======
+                      <p className="font-medium text-gray-800">Uploaded Logo:</p>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       <a
                         href={design.uploadedLogo || design.uploaded_logo}
                         target="_blank"
@@ -378,7 +503,11 @@ const OrderDetailsCard = ({ orderId }) => {
                                 rel="noreferrer"
                                 className="text-blue-600 hover:underline"
                               >
+<<<<<<< HEAD
                                 {f.name || f.split('/').pop()}
+=======
+                                {f.name || f.split("/").pop()}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                               </a>
                             </li>
                           ))}

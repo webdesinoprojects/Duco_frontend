@@ -1,17 +1,29 @@
 // src/pages/EmployeesAccManager.jsx
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from 'react';
+=======
+import { useEffect, useMemo, useState } from "react";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
 /* ===========================================
    API LAYER (INLINE)
    Keep endpoints centralized & typed here
    =========================================== */
 
+<<<<<<< HEAD
 const API_BASE = 'http://localhost:3000/';
+=======
+const API_BASE = import.meta?.env?.VITE_API_BASE || "https://duco-backend.onrender.com/api";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
 /** Build querystring for GET /employeesacc?url=&employeeid= */
 const getEmployeesAcc = async (params = {}) => {
   const qs = new URLSearchParams(params).toString();
+<<<<<<< HEAD
   const url = `${API_BASE}/employeesacc${qs ? `?${qs}` : ''}`;
+=======
+  const url = `${API_BASE}/employeesacc${qs ? `?${qs}` : ""}`;
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch employees: ${res.status}`);
@@ -21,8 +33,13 @@ const getEmployeesAcc = async (params = {}) => {
 /** POST /employeesacc  (create new) */
 const createEmployeeAcc = async (payload) => {
   const res = await fetch(`${API_BASE}/employeesacc`, {
+<<<<<<< HEAD
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+=======
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -35,8 +52,13 @@ const createEmployeeAcc = async (payload) => {
 /** PATCH /employeesacc/:id  (partial update) */
 const updateEmployeeAcc = async (id, payload) => {
   const res = await fetch(`${API_BASE}/employeesacc/${id}`, {
+<<<<<<< HEAD
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
+=======
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -49,8 +71,13 @@ const updateEmployeeAcc = async (id, payload) => {
 /* ===========================================
    THEME TOKENS
    =========================================== */
+<<<<<<< HEAD
 const BG = '#0A0A0A';
 const ACCENT = '#E5C870';
+=======
+const BG = "#0A0A0A";
+const ACCENT = "#E5C870";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
 /* ===========================================
    SMALL UI PRIMITIVES
@@ -64,6 +91,7 @@ const Field = ({ label, required, children }) => (
   </label>
 );
 
+<<<<<<< HEAD
 const Button = ({
   children,
   type = 'button',
@@ -71,6 +99,9 @@ const Button = ({
   disabled,
   className = '',
 }) => (
+=======
+const Button = ({ children, type = "button", onClick, disabled, className = "" }) => (
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   <button
     type={type}
     onClick={onClick}
@@ -82,7 +113,11 @@ const Button = ({
   </button>
 );
 
+<<<<<<< HEAD
 const GhostBtn = ({ children, onClick, className = '' }) => (
+=======
+const GhostBtn = ({ children, onClick, className = "" }) => (
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   <button
     onClick={onClick}
     className={`px-3 py-1.5 rounded-2xl border transition hover:bg-white/10 ${className}`}
@@ -96,11 +131,19 @@ const GhostBtn = ({ children, onClick, className = '' }) => (
    EMPTY SHAPES
    =========================================== */
 const emptyForm = {
+<<<<<<< HEAD
   url: '',
   employeeid: '',
   password: '',
   employeesdetails: { name: '', email: '', role: '' },
   employeesNote: '',
+=======
+  url: "",
+  employeeid: "",
+  password: "",
+  employeesdetails: { name: "", email: "", role: "" },
+  employeesNote: "",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 };
 
 /* ===========================================
@@ -111,9 +154,15 @@ const EmployeesAccManager = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   // filters
+<<<<<<< HEAD
   const [filters, setFilters] = useState({ url: '', employeeid: '' });
 
   console.log(rows);
+=======
+  const [filters, setFilters] = useState({ url: "", employeeid: "" });
+
+  console.log(rows)
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
   // create state
   const [form, setForm] = useState(emptyForm);
@@ -134,13 +183,21 @@ const EmployeesAccManager = () => {
     try {
       const params = {};
       if (filters.url.trim()) params.url = filters.url.trim();
+<<<<<<< HEAD
       if (filters.employeeid.trim())
         params.employeeid = filters.employeeid.trim();
+=======
+      if (filters.employeeid.trim()) params.employeeid = filters.employeeid.trim();
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       const list = await getEmployeesAcc(params);
       setRows(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error(err);
+<<<<<<< HEAD
       alert(err.message || 'Failed to load employees');
+=======
+      alert(err.message || "Failed to load employees");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     } finally {
       setLoading(false);
     }
@@ -157,7 +214,11 @@ const EmployeesAccManager = () => {
   const onCreate = async (e) => {
     e.preventDefault();
     if (!form.url || !form.employeeid || !form.password) {
+<<<<<<< HEAD
       alert('url, employeeid and password are required.');
+=======
+      alert("url, employeeid and password are required.");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       return;
     }
     setSaving(true);
@@ -165,7 +226,11 @@ const EmployeesAccManager = () => {
       await createEmployeeAcc(form);
       setForm(emptyForm);
       await fetchAll();
+<<<<<<< HEAD
       alert('Employee created');
+=======
+      alert("Employee created");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     } catch (err) {
       alert(err.message);
     } finally {
@@ -179,6 +244,7 @@ const EmployeesAccManager = () => {
   const openEdit = (row) => {
     setEditId(row._id);
     setEdit({
+<<<<<<< HEAD
       url: row.url || '',
       employeeid: row.employeeid || '',
       password: '', // keep blank so we don't overwrite unless user types it
@@ -188,6 +254,17 @@ const EmployeesAccManager = () => {
         role: row.employeesdetails?.role || '',
       },
       employeesNote: row.employeesNote || '',
+=======
+      url: row.url || "",
+      employeeid: row.employeeid || "",
+      password: "", // keep blank so we don't overwrite unless user types it
+      employeesdetails: {
+        name: row.employeesdetails?.name || "",
+        email: row.employeesdetails?.email || "",
+        role: row.employeesdetails?.role || "",
+      },
+      employeesNote: row.employeesNote || "",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     });
   };
 
@@ -200,7 +277,11 @@ const EmployeesAccManager = () => {
       await updateEmployeeAcc(editId, payload);
       setEditId(null);
       await fetchAll();
+<<<<<<< HEAD
       alert('Employee updated');
+=======
+      alert("Employee updated");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     } catch (err) {
       alert(err.message);
     } finally {
@@ -214,10 +295,14 @@ const EmployeesAccManager = () => {
      RENDER
      =========================================== */
   return (
+<<<<<<< HEAD
     <div
       className="min-h-screen"
       style={{ backgroundColor: BG, color: '#FFFFFF' }}
     >
+=======
+    <div className="min-h-screen" style={{ backgroundColor: BG, color: "#FFFFFF" }}>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       <div className="max-w-6xl mx-auto p-6">
         {/* HEADER */}
         <header className="mb-6 flex items-center justify-between">
@@ -230,9 +315,13 @@ const EmployeesAccManager = () => {
           <Field label="Filter by URL">
             <input
               value={filters.url}
+<<<<<<< HEAD
               onChange={(e) =>
                 setFilters((s) => ({ ...s, url: e.target.value }))
               }
+=======
+              onChange={(e) => setFilters((s) => ({ ...s, url: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
               placeholder="acme.example.com"
             />
@@ -240,9 +329,13 @@ const EmployeesAccManager = () => {
           <Field label="Filter by Employee ID">
             <input
               value={filters.employeeid}
+<<<<<<< HEAD
               onChange={(e) =>
                 setFilters((s) => ({ ...s, employeeid: e.target.value }))
               }
+=======
+              onChange={(e) => setFilters((s) => ({ ...s, employeeid: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
               placeholder="EMP001"
             />
@@ -251,7 +344,11 @@ const EmployeesAccManager = () => {
             <Button onClick={fetchAll}>Apply Filters</Button>
             <GhostBtn
               onClick={() => {
+<<<<<<< HEAD
                 setFilters({ url: '', employeeid: '' });
+=======
+                setFilters({ url: "", employeeid: "" });
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 fetchAll();
               }}
             >
@@ -267,6 +364,7 @@ const EmployeesAccManager = () => {
         >
           <h2 className="text-xl font-semibold mb-4">Create Employee Access</h2>
 
+<<<<<<< HEAD
           <form
             onSubmit={onCreate}
             className="grid grid-cols-1 md:grid-cols-2 gap-5"
@@ -277,6 +375,13 @@ const EmployeesAccManager = () => {
                 onChange={(e) =>
                   setForm((s) => ({ ...s, url: e.target.value }))
                 }
+=======
+          <form onSubmit={onCreate} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Field label="URL" required>
+              <input
+                value={form.url}
+                onChange={(e) => setForm((s) => ({ ...s, url: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                 placeholder="acme.example.com"
               />
@@ -285,9 +390,13 @@ const EmployeesAccManager = () => {
             <Field label="Employee ID" required>
               <input
                 value={form.employeeid}
+<<<<<<< HEAD
                 onChange={(e) =>
                   setForm((s) => ({ ...s, employeeid: e.target.value }))
                 }
+=======
+                onChange={(e) => setForm((s) => ({ ...s, employeeid: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                 placeholder="EMP001"
               />
@@ -297,9 +406,13 @@ const EmployeesAccManager = () => {
               <input
                 type="password"
                 value={form.password}
+<<<<<<< HEAD
                 onChange={(e) =>
                   setForm((s) => ({ ...s, password: e.target.value }))
                 }
+=======
+                onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                 placeholder="••••••••"
               />
@@ -311,10 +424,14 @@ const EmployeesAccManager = () => {
                 onChange={(e) =>
                   setForm((s) => ({
                     ...s,
+<<<<<<< HEAD
                     employeesdetails: {
                       ...s.employeesdetails,
                       name: e.target.value,
                     },
+=======
+                    employeesdetails: { ...s.employeesdetails, name: e.target.value },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   }))
                 }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -328,10 +445,14 @@ const EmployeesAccManager = () => {
                 onChange={(e) =>
                   setForm((s) => ({
                     ...s,
+<<<<<<< HEAD
                     employeesdetails: {
                       ...s.employeesdetails,
                       email: e.target.value,
                     },
+=======
+                    employeesdetails: { ...s.employeesdetails, email: e.target.value },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   }))
                 }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -345,10 +466,14 @@ const EmployeesAccManager = () => {
                 onChange={(e) =>
                   setForm((s) => ({
                     ...s,
+<<<<<<< HEAD
                     employeesdetails: {
                       ...s.employeesdetails,
                       role: e.target.value,
                     },
+=======
+                    employeesdetails: { ...s.employeesdetails, role: e.target.value },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   }))
                 }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -361,9 +486,13 @@ const EmployeesAccManager = () => {
                 <textarea
                   rows={3}
                   value={form.employeesNote}
+<<<<<<< HEAD
                   onChange={(e) =>
                     setForm((s) => ({ ...s, employeesNote: e.target.value }))
                   }
+=======
+                  onChange={(e) => setForm((s) => ({ ...s, employeesNote: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                   placeholder="Any internal note…"
                 />
@@ -372,7 +501,11 @@ const EmployeesAccManager = () => {
 
             <div className="md:col-span-2 flex gap-3">
               <Button type="submit" disabled={saving}>
+<<<<<<< HEAD
                 {saving ? 'Saving…' : 'Create'}
+=======
+                {saving ? "Saving…" : "Create"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               </Button>
               <GhostBtn onClick={() => setForm(emptyForm)}>Reset</GhostBtn>
             </div>
@@ -415,6 +548,7 @@ const EmployeesAccManager = () => {
                   <tr key={row._id} className="border-b border-white/5">
                     <td className="py-2 pr-4">{row.url}</td>
                     <td className="py-2 pr-4">{row.employeeid}</td>
+<<<<<<< HEAD
                     <td className="py-2 pr-4">
                       {row.employeesdetails?.name || '-'}
                     </td>
@@ -428,6 +562,13 @@ const EmployeesAccManager = () => {
                       <span className="line-clamp-2">
                         {row.employeesNote || '-'}
                       </span>
+=======
+                    <td className="py-2 pr-4">{row.employeesdetails?.name || "-"}</td>
+                    <td className="py-2 pr-4">{row.employeesdetails?.email || "-"}</td>
+                    <td className="py-2 pr-4">{row.employeesdetails?.role || "-"}</td>
+                    <td className="py-2 pr-4">
+                      <span className="line-clamp-2">{row.employeesNote || "-"}</span>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     </td>
                     <td className="py-2 pr-4">
                       <GhostBtn onClick={() => openEdit(row)}>Edit</GhostBtn>
@@ -448,10 +589,14 @@ const EmployeesAccManager = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Update Employee</h3>
+<<<<<<< HEAD
                 <button
                   onClick={closeEdit}
                   className="text-gray-300 hover:text-white"
                 >
+=======
+                <button onClick={closeEdit} className="text-gray-300 hover:text-white">
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   ✕
                 </button>
               </div>
@@ -460,18 +605,26 @@ const EmployeesAccManager = () => {
                 <Field label="URL" required>
                   <input
                     value={edit.url}
+<<<<<<< HEAD
                     onChange={(e) =>
                       setEdit((s) => ({ ...s, url: e.target.value }))
                     }
+=======
+                    onChange={(e) => setEdit((s) => ({ ...s, url: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                   />
                 </Field>
                 <Field label="Employee ID" required>
                   <input
                     value={edit.employeeid}
+<<<<<<< HEAD
                     onChange={(e) =>
                       setEdit((s) => ({ ...s, employeeid: e.target.value }))
                     }
+=======
+                    onChange={(e) => setEdit((s) => ({ ...s, employeeid: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                   />
                 </Field>
@@ -479,9 +632,13 @@ const EmployeesAccManager = () => {
                   <input
                     type="password"
                     value={edit.password}
+<<<<<<< HEAD
                     onChange={(e) =>
                       setEdit((s) => ({ ...s, password: e.target.value }))
                     }
+=======
+                    onChange={(e) => setEdit((s) => ({ ...s, password: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                     placeholder="••••••••"
                   />
@@ -492,10 +649,14 @@ const EmployeesAccManager = () => {
                     onChange={(e) =>
                       setEdit((s) => ({
                         ...s,
+<<<<<<< HEAD
                         employeesdetails: {
                           ...s.employeesdetails,
                           name: e.target.value,
                         },
+=======
+                        employeesdetails: { ...s.employeesdetails, name: e.target.value },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       }))
                     }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -507,10 +668,14 @@ const EmployeesAccManager = () => {
                     onChange={(e) =>
                       setEdit((s) => ({
                         ...s,
+<<<<<<< HEAD
                         employeesdetails: {
                           ...s.employeesdetails,
                           email: e.target.value,
                         },
+=======
+                        employeesdetails: { ...s.employeesdetails, email: e.target.value },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       }))
                     }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -522,10 +687,14 @@ const EmployeesAccManager = () => {
                     onChange={(e) =>
                       setEdit((s) => ({
                         ...s,
+<<<<<<< HEAD
                         employeesdetails: {
                           ...s.employeesdetails,
                           role: e.target.value,
                         },
+=======
+                        employeesdetails: { ...s.employeesdetails, role: e.target.value },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       }))
                     }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -536,12 +705,16 @@ const EmployeesAccManager = () => {
                     <textarea
                       rows={3}
                       value={edit.employeesNote}
+<<<<<<< HEAD
                       onChange={(e) =>
                         setEdit((s) => ({
                           ...s,
                           employeesNote: e.target.value,
                         }))
                       }
+=======
+                      onChange={(e) => setEdit((s) => ({ ...s, employeesNote: e.target.value }))}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                     />
                   </Field>
@@ -550,7 +723,11 @@ const EmployeesAccManager = () => {
 
               <div className="mt-6 flex gap-3">
                 <Button onClick={submitEdit} disabled={saving}>
+<<<<<<< HEAD
                   {saving ? 'Saving…' : 'Save Changes'}
+=======
+                  {saving ? "Saving…" : "Save Changes"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 </Button>
                 <GhostBtn onClick={closeEdit}>Cancel</GhostBtn>
               </div>

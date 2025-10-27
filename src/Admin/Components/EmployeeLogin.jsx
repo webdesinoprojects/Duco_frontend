@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -5,6 +6,15 @@ const API_BASE = 'http://localhost:3000/api/';
 
 const EmployeeLogin = () => {
   const [form, setForm] = useState({ employeeid: '', password: '' });
+=======
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+const API_BASE = import.meta?.env?.VITE_API_BASE || "https://duco-backend.onrender.com/api/";
+
+const EmployeeLogin = () => {
+  const [form, setForm] = useState({ employeeid: "", password: "" });
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -13,14 +23,20 @@ const EmployeeLogin = () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}employeesacc/login`, {
+<<<<<<< HEAD
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+=======
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
         body: JSON.stringify(form),
       });
       const data = await res.json();
 
       if (data.ok) {
         // save session
+<<<<<<< HEAD
         localStorage.setItem('employeeAuth', JSON.stringify(form));
         navigate(data.url); // go to main dashboard
       } else {
@@ -28,6 +44,15 @@ const EmployeeLogin = () => {
       }
     } catch (err) {
       alert('Login failed: ' + err.message);
+=======
+        localStorage.setItem("employeeAuth", JSON.stringify(form));
+        navigate(data.url); // go to main dashboard
+      } else {
+        alert("Invalid credentials");
+      }
+    } catch (err) {
+      alert("Login failed: " + err.message);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     } finally {
       setLoading(false);
     }
@@ -41,6 +66,10 @@ const EmployeeLogin = () => {
       >
         <h1 className="text-xl font-semibold">Employee Login</h1>
 
+<<<<<<< HEAD
+=======
+     
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
         <input
           className="w-full p-2 rounded bg-gray-700 outline-none"
           placeholder="Employee ID"
@@ -60,11 +89,19 @@ const EmployeeLogin = () => {
           className="w-full bg-yellow-400 text-black py-2 rounded font-medium"
           disabled={loading}
         >
+<<<<<<< HEAD
           {loading ? 'Checking…' : 'Login'}
+=======
+          {loading ? "Checking…" : "Login"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
         </button>
       </form>
     </div>
   );
 };
 
+<<<<<<< HEAD
 export default EmployeeLogin;
+=======
+export default EmployeeLogin;
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949

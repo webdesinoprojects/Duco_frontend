@@ -5,7 +5,11 @@
 // - Assumes the backend is available at the same origin: /api/analytics/sales
 //   If you use a different origin, set API_BASE accordingly.
 
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+=======
+import React, { useEffect, useMemo, useRef, useState } from "react";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 import {
   BarChart,
   Bar,
@@ -14,6 +18,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+<<<<<<< HEAD
 } from 'recharts';
 
 const API_BASE = 'http://localhost:3000/'; // e.g. "http://localhost:5000"; keep empty for same-origin
@@ -25,6 +30,19 @@ function formatINR(num) {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
+=======
+} from "recharts";
+
+const API_BASE = "https://duco-backend.onrender.com/"; // e.g. "http://localhost:5000"; keep empty for same-origin
+
+const STATUSES = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
+
+function formatINR(num) {
+  try {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       maximumFractionDigits: 0,
     }).format(Number(num || 0));
   } catch {
@@ -35,8 +53,13 @@ function formatINR(num) {
 function toInputDate(d) {
   // Date -> yyyy-mm-dd
   const yyyy = d.getFullYear();
+<<<<<<< HEAD
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
+=======
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   return `${yyyy}-${mm}-${dd}`;
 }
 
@@ -58,18 +81,30 @@ function useDebounce(value, delay = 400) {
 
 function buildParams({ from, to, groupBy, includeCancelled, statusFilter }) {
   const params = new URLSearchParams();
+<<<<<<< HEAD
   params.set('from', from);
   params.set('to', to);
   if (groupBy && groupBy !== 'none') params.set('groupBy', groupBy);
   if (includeCancelled) params.set('includeCancelled', 'true');
   if (statusFilter?.length) params.set('status', statusFilter.join(','));
+=======
+  params.set("from", from);
+  params.set("to", to);
+  if (groupBy && groupBy !== "none") params.set("groupBy", groupBy);
+  if (includeCancelled) params.set("includeCancelled", "true");
+  if (statusFilter?.length) params.set("status", statusFilter.join(","));
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   return params.toString();
 }
 
 async function tryFetch(url, controller) {
   const res = await fetch(url, { signal: controller?.signal });
   if (!res.ok) {
+<<<<<<< HEAD
     const txt = await res.text().catch(() => '');
+=======
+    const txt = await res.text().catch(() => "");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     throw new Error(txt || `Request failed (${res.status}) @ ${url}`);
   }
   return res.json();
@@ -87,6 +122,7 @@ export default function AnalyticsDashboard() {
   const { from: _from, to: _to } = getDefaultRange(7);
   const [from, setFrom] = useState(_from);
   const [to, setTo] = useState(_to);
+<<<<<<< HEAD
   const [groupBy, setGroupBy] = useState('day'); // "day" | "month" | "none"
   const [includeCancelled, setIncludeCancelled] = useState(false);
   const [statusFilter, setStatusFilter] = useState(['Delivered', 'Shipped']); // sensible default
@@ -98,6 +134,15 @@ export default function AnalyticsDashboard() {
     breakdown: [],
     orders: [],
   });
+=======
+  const [groupBy, setGroupBy] = useState("day"); // "day" | "month" | "none"
+  const [includeCancelled, setIncludeCancelled] = useState(false);
+  const [statusFilter, setStatusFilter] = useState(["Delivered", "Shipped"]); // sensible default
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [data, setData] = useState({ summary: null, breakdown: [], orders: [] });
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
   // === Query management ===
   const canQuery = useMemo(() => Boolean(from && to), [from, to]);
@@ -118,7 +163,11 @@ export default function AnalyticsDashboard() {
     abortRef.current = controller;
 
     setLoading(true);
+<<<<<<< HEAD
     setError('');
+=======
+    setError("");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
     // We’ll try these endpoints in order for maximum compatibility with your backend:
     const qs = useDebounced ? debouncedQueryString : queryString;
@@ -142,7 +191,11 @@ export default function AnalyticsDashboard() {
           // continue trying next endpoint
         }
       }
+<<<<<<< HEAD
       if (!json) throw lastError || new Error('No response from any endpoint.');
+=======
+      if (!json) throw lastError || new Error("No response from any endpoint.");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
       // Normalize payload
       const summary = json.summary || null;
@@ -159,8 +212,13 @@ export default function AnalyticsDashboard() {
         orders,
       });
     } catch (e) {
+<<<<<<< HEAD
       if (e?.name === 'AbortError') return; // ignore
       setError(e?.message || 'Failed to load analytics');
+=======
+      if (e?.name === "AbortError") return; // ignore
+      setError(e?.message || "Failed to load analytics");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     } finally {
       setLoading(false);
     }
@@ -187,6 +245,7 @@ export default function AnalyticsDashboard() {
 
   function exportCSV() {
     const rows = [
+<<<<<<< HEAD
       [
         'OrderID',
         'Date(IST)',
@@ -208,11 +267,26 @@ export default function AnalyticsDashboard() {
         Number(o?.price || 0),
         o?.status || '',
         o?.razorpayPaymentId || '',
+=======
+      ["OrderID", "Date(IST)", "UserId", "Price", "Status", "RazorpayPaymentId"],
+      ...data.orders.map((o) => [
+        o?._id || "",
+        o?.createdAt
+          ? new Date(o.createdAt).toLocaleString("en-IN", {
+              timeZone: "Asia/Kolkata",
+            })
+          : "",
+        typeof o?.user === "object" && o?.user?._id ? o.user._id : String(o?.user || ""),
+        Number(o?.price || 0),
+        o?.status || "",
+        o?.razorpayPaymentId || "",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       ]),
     ];
 
     const csv =
       rows
+<<<<<<< HEAD
         .map((r) =>
           r.map((x) => `"${String(x).replaceAll(`"`, `""`)}"`).join(',')
         )
@@ -221,6 +295,14 @@ export default function AnalyticsDashboard() {
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
+=======
+        .map((r) => r.map((x) => `"${String(x).replaceAll(`"`, `""`)}"`).join(","))
+        .join("\n") + "\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     a.href = url;
     a.download = `sales_${from}_to_${to}.csv`;
     a.click();
@@ -229,15 +311,24 @@ export default function AnalyticsDashboard() {
 
   // X-axis label formatter for dates like "2025-09-29" or ISO strings
   const xTickFormatter = (val) => {
+<<<<<<< HEAD
     if (!val) return '';
+=======
+    if (!val) return "";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     // If looks like YYYY-MM or YYYY-MM-DD
     if (/^\d{4}-\d{2}(-\d{2})?$/.test(val)) return val;
     // Try to parse ISO
     const d = new Date(val);
     if (!isNaN(d)) {
       const yyyy = d.getFullYear();
+<<<<<<< HEAD
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
+=======
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       return `${yyyy}-${mm}-${dd}`;
     }
     return String(val);
@@ -316,9 +407,13 @@ export default function AnalyticsDashboard() {
                 </select>
               </div>
               <div className="space-y-2">
+<<<<<<< HEAD
                 <label className="text-sm text-gray-300">
                   Include Cancelled
                 </label>
+=======
+                <label className="text-sm text-gray-300">Include Cancelled</label>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 <div className="flex items-center gap-2 p-2 rounded-lg border border-[#333] bg-[#0B0B0B]">
                   <input
                     id="inc-cancelled"
@@ -344,8 +439,13 @@ export default function AnalyticsDashboard() {
                     onClick={() => toggleStatus(s)}
                     className={`px-3 py-1 rounded-full border ${
                       statusFilter.includes(s)
+<<<<<<< HEAD
                         ? 'bg-[#E5C870] text-black border-[#E5C870]'
                         : 'bg-transparent text-gray-300 border-[#333]'
+=======
+                        ? "bg-[#E5C870] text-black border-[#E5C870]"
+                        : "bg-transparent text-gray-300 border-[#333]"
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     }`}
                   >
                     {s}
@@ -397,6 +497,7 @@ export default function AnalyticsDashboard() {
             <div className="flex items-center gap-2 mb-4">
               <span className="inline-block w-5 h-5">📊</span>
               <h3 className="font-semibold">
+<<<<<<< HEAD
                 Breakdown{' '}
                 {groupBy !== 'none' ? `(by ${groupBy})` : '(disabled)'}
               </h3>
@@ -406,6 +507,16 @@ export default function AnalyticsDashboard() {
                 {groupBy === 'none'
                   ? 'Select a group to view chart.'
                   : 'No breakdown data for selected filters.'}
+=======
+                Breakdown {groupBy !== "none" ? `(by ${groupBy})` : "(disabled)"}
+              </h3>
+            </div>
+            {groupBy === "none" || !data.breakdown?.length ? (
+              <div className="text-sm text-gray-400">
+                {groupBy === "none"
+                  ? "Select a group to view chart."
+                  : "No breakdown data for selected filters."}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               </div>
             ) : (
               <div className="h-72">
@@ -415,6 +526,7 @@ export default function AnalyticsDashboard() {
                     margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+<<<<<<< HEAD
                     <XAxis
                       dataKey="_id"
                       tick={{ fill: '#d1d5db' }}
@@ -430,6 +542,19 @@ export default function AnalyticsDashboard() {
                         background: '#0B0B0B',
                         border: '1px solid #333',
                         color: '#fff',
+=======
+                    <XAxis dataKey="_id" tick={{ fill: "#d1d5db" }} tickFormatter={xTickFormatter} />
+                    <YAxis tick={{ fill: "#d1d5db" }} />
+                    <Tooltip
+                      formatter={(v, n) =>
+                        n === "totalAmount" ? [formatINR(v), "Amount"] : [v, n]
+                      }
+                      labelFormatter={(val) => `Group: ${xTickFormatter(val)}`}
+                      contentStyle={{
+                        background: "#0B0B0B",
+                        border: "1px solid #333",
+                        color: "#fff",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       }}
                     />
                     <Bar dataKey="totalAmount" />
@@ -463,6 +588,7 @@ export default function AnalyticsDashboard() {
                     >
                       <td className="px-4 py-3">
                         {o?.createdAt
+<<<<<<< HEAD
                           ? new Date(o.createdAt).toLocaleString('en-IN', {
                               timeZone: 'Asia/Kolkata',
                             })
@@ -473,11 +599,24 @@ export default function AnalyticsDashboard() {
                         {typeof o?.user === 'object' && o?.user?._id
                           ? o.user._id
                           : String(o?.user || '-')}
+=======
+                          ? new Date(o.createdAt).toLocaleString("en-IN", {
+                              timeZone: "Asia/Kolkata",
+                            })
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">{o?._id}</td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {typeof o?.user === "object" && o?.user?._id
+                          ? o.user._id
+                          : String(o?.user || "-")}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       </td>
                       <td className="px-4 py-3">{formatINR(o?.price)}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`px-2 py-1 rounded text-xs ${
+<<<<<<< HEAD
                             o?.status === 'Delivered'
                               ? 'bg-emerald-500/20 text-emerald-300'
                               : o?.status === 'Shipped'
@@ -490,13 +629,33 @@ export default function AnalyticsDashboard() {
                           }`}
                         >
                           {o?.status || '-'}
+=======
+                            o?.status === "Delivered"
+                              ? "bg-emerald-500/20 text-emerald-300"
+                              : o?.status === "Shipped"
+                              ? "bg-sky-500/20 text-sky-300"
+                              : o?.status === "Processing"
+                              ? "bg-yellow-500/20 text-yellow-300"
+                              : o?.status === "Pending"
+                              ? "bg-gray-500/20 text-gray-300"
+                              : "bg-red-500/20 text-red-300"
+                          }`}
+                        >
+                          {o?.status || "-"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                         </span>
                       </td>
                       <td
                         className="px-4 py-3 font-mono text-xs truncate max-w-[180px]"
+<<<<<<< HEAD
                         title={o?.razorpayPaymentId || ''}
                       >
                         {o?.razorpayPaymentId || ''}
+=======
+                        title={o?.razorpayPaymentId || ""}
+                      >
+                        {o?.razorpayPaymentId || ""}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                       </td>
                     </tr>
                   ))

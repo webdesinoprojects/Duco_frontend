@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+=======
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
 const ProductsCreated = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -12,11 +17,19 @@ const ProductsCreated = () => {
     const getSubCategories = async () => {
       try {
         const res = await axios.get(
+<<<<<<< HEAD
           'http://localhost:3000/subcategory/getallsubctg'
         );
         setSubcategories(res.data.subCategory || []);
       } catch (err) {
         console.error('Error fetching subcategories:', err);
+=======
+          "https://duco-backend.onrender.com/subcategory/getallsubctg"
+        );
+        setSubcategories(res.data.subCategory || []);
+      } catch (err) {
+        console.error("Error fetching subcategories:", err);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       }
     };
     getSubCategories();
@@ -26,16 +39,26 @@ const ProductsCreated = () => {
   useEffect(() => {
     const fetchPrintroveCatalog = async () => {
       try {
+<<<<<<< HEAD
         const res = await axios.get('http://localhost:3000/api/printrove/sync');
         setPrintroveProducts(res.data.products || []);
       } catch (err) {
         console.error('Error fetching Printrove catalog:', err);
+=======
+        const res = await axios.get(
+          "https://duco-backend.onrender.com/api/printrove/sync"
+        );
+        setPrintroveProducts(res.data.products || []);
+      } catch (err) {
+        console.error("Error fetching Printrove catalog:", err);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       }
     };
     fetchPrintroveCatalog();
   }, []);
 
   const [formData, setFormData] = useState({
+<<<<<<< HEAD
     products_name: '',
     image_url: [
       {
@@ -52,6 +75,24 @@ const ProductsCreated = () => {
     gender: 'Male',
     printroveProductId: '', // ✅ NEW
     printroveVariantId: '', // ✅ NEW
+=======
+    products_name: "",
+    image_url: [
+      {
+        url: [""],
+        color: "",
+        colorcode: "",
+        videolink: "",
+        content: [{ size: "", minstock: 1 }],
+      },
+    ],
+    pricing: [{ quantity: "", price_per: "", discount: 0 }],
+    Desciptions: [""],
+    subcategory: "",
+    gender: "Male",
+    printroveProductId: "", // ✅ NEW
+    printroveVariantId: "", // ✅ NEW
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     isCorporate: false, // ✅ NEW FIELD
   });
 
@@ -73,7 +114,11 @@ const ProductsCreated = () => {
     setFormData({
       ...formData,
       printroveProductId: selectedId,
+<<<<<<< HEAD
       printroveVariantId: '',
+=======
+      printroveVariantId: "",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     });
   };
 
@@ -107,11 +152,19 @@ const ProductsCreated = () => {
       image_url: [
         ...formData.image_url,
         {
+<<<<<<< HEAD
           url: [''],
           color: '',
           colorcode: '',
           videolink: '',
           content: [{ size: '', minstock: 1 }],
+=======
+          url: [""],
+          color: "",
+          colorcode: "",
+          videolink: "",
+          content: [{ size: "", minstock: 1 }],
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
         },
       ],
     });
@@ -119,13 +172,21 @@ const ProductsCreated = () => {
 
   const addImageUrl = (imgIndex) => {
     const updated = [...formData.image_url];
+<<<<<<< HEAD
     updated[imgIndex].url.push('');
+=======
+    updated[imgIndex].url.push("");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     setFormData({ ...formData, image_url: updated });
   };
 
   const addContentField = (imgIndex) => {
     const updated = [...formData.image_url];
+<<<<<<< HEAD
     updated[imgIndex].content.push({ size: '', minstock: 1 });
+=======
+    updated[imgIndex].content.push({ size: "", minstock: 1 });
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     setFormData({ ...formData, image_url: updated });
   };
 
@@ -140,7 +201,11 @@ const ProductsCreated = () => {
       ...formData,
       pricing: [
         ...formData.pricing,
+<<<<<<< HEAD
         { quantity: '', price_per: '', discount: 0 },
+=======
+        { quantity: "", price_per: "", discount: 0 },
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       ],
     });
   };
@@ -148,13 +213,18 @@ const ProductsCreated = () => {
   const addDescriptionField = () => {
     setFormData({
       ...formData,
+<<<<<<< HEAD
       Desciptions: [...formData.Desciptions, ''],
+=======
+      Desciptions: [...formData.Desciptions, ""],
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     });
   };
 
   // 🔹 Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
     console.log('🧾 Submitting product:', formData);
     try {
       const res = await axios.post(
@@ -165,6 +235,18 @@ const ProductsCreated = () => {
     } catch (error) {
       console.error('Error creating product:', error);
       alert('Something went wrong while creating product');
+=======
+    console.log("🧾 Submitting product:", formData);
+    try {
+      const res = await axios.post(
+        "https://duco-backend.onrender.com/products/create",
+        formData
+      );
+      alert(res?.data?.message || "Product created successfully");
+    } catch (error) {
+      console.error("Error creating product:", error);
+      alert("Something went wrong while creating product");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     }
   };
 
@@ -204,7 +286,11 @@ const ProductsCreated = () => {
   return (
     <div className="max-w-5xl mx-auto p-8 bg-gradient-to-br from-white via-slate-50 to-white shadow-xl rounded-lg border border-slate-100">
       <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
+<<<<<<< HEAD
         🛍️ Create New Product{' '}
+=======
+        🛍️ Create New Product{" "}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
         <span className="text-base block mt-1 text-gray-500">
           Step {currentStep} of 6
         </span>
@@ -218,7 +304,11 @@ const ProductsCreated = () => {
             placeholder="Product Name"
             className="w-full border border-gray-300 p-3 rounded-md shadow-sm focus:ring focus:ring-blue-200"
             value={formData.products_name}
+<<<<<<< HEAD
             onChange={(e) => handleChange(e, 'products_name')}
+=======
+            onChange={(e) => handleChange(e, "products_name")}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
             required
           />
         )}
@@ -243,7 +333,11 @@ const ProductsCreated = () => {
                     placeholder="Color"
                     value={img.color}
                     onChange={(e) =>
+<<<<<<< HEAD
                       handleNestedChange(e, 'image_url', imgIndex, 'color')
+=======
+                      handleNestedChange(e, "image_url", imgIndex, "color")
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     }
                     className="border p-2 rounded"
                   />
@@ -252,7 +346,11 @@ const ProductsCreated = () => {
                     placeholder="Color Code"
                     value={img.colorcode}
                     onChange={(e) =>
+<<<<<<< HEAD
                       handleNestedChange(e, 'image_url', imgIndex, 'colorcode')
+=======
+                      handleNestedChange(e, "image_url", imgIndex, "colorcode")
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     }
                     className="border p-2 rounded"
                   />
@@ -261,7 +359,11 @@ const ProductsCreated = () => {
                     placeholder="Video Link"
                     value={img.videolink}
                     onChange={(e) =>
+<<<<<<< HEAD
                       handleNestedChange(e, 'image_url', imgIndex, 'videolink')
+=======
+                      handleNestedChange(e, "image_url", imgIndex, "videolink")
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     }
                     className="border p-2 rounded"
                   />
@@ -298,7 +400,11 @@ const ProductsCreated = () => {
                         placeholder={`Size #${contentIndex + 1}`}
                         value={contentItem.size}
                         onChange={(e) =>
+<<<<<<< HEAD
                           handleContentChange(e, imgIndex, contentIndex, 'size')
+=======
+                          handleContentChange(e, imgIndex, contentIndex, "size")
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                         }
                         className="w-1/2 border p-2 rounded"
                       />
@@ -311,7 +417,11 @@ const ProductsCreated = () => {
                             e,
                             imgIndex,
                             contentIndex,
+<<<<<<< HEAD
                             'minstock'
+=======
+                            "minstock"
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                           )
                         }
                         className="w-1/2 border p-2 rounded"
@@ -351,7 +461,11 @@ const ProductsCreated = () => {
                   placeholder={`Qty #${i + 1}`}
                   value={item.quantity}
                   onChange={(e) =>
+<<<<<<< HEAD
                     handleNestedChange(e, 'pricing', i, 'quantity')
+=======
+                    handleNestedChange(e, "pricing", i, "quantity")
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   }
                   className="border p-2 rounded"
                 />
@@ -360,7 +474,11 @@ const ProductsCreated = () => {
                   placeholder={`Price #${i + 1}`}
                   value={item.price_per}
                   onChange={(e) =>
+<<<<<<< HEAD
                     handleNestedChange(e, 'pricing', i, 'price_per')
+=======
+                    handleNestedChange(e, "pricing", i, "price_per")
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   }
                   className="border p-2 rounded"
                 />
@@ -369,7 +487,11 @@ const ProductsCreated = () => {
                   placeholder={`Discount (%) #${i + 1}`}
                   value={item.discount}
                   onChange={(e) =>
+<<<<<<< HEAD
                     handleNestedChange(e, 'pricing', i, 'discount')
+=======
+                    handleNestedChange(e, "pricing", i, "discount")
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   }
                   className="border p-2 rounded"
                 />
@@ -418,7 +540,11 @@ const ProductsCreated = () => {
             </h3>
             <select
               value={formData.subcategory}
+<<<<<<< HEAD
               onChange={(e) => handleChange(e, 'subcategory')}
+=======
+              onChange={(e) => handleChange(e, "subcategory")}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-green-200 mb-4"
             >
               <option value="">Select a Subcategory</option>
@@ -436,7 +562,11 @@ const ProductsCreated = () => {
             </h3>
             <select
               value={formData.gender}
+<<<<<<< HEAD
               onChange={(e) => handleChange(e, 'gender')}
+=======
+              onChange={(e) => handleChange(e, "gender")}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring focus:ring-green-200 mb-6"
             >
               <option value="">Select Gender</option>
@@ -517,8 +647,13 @@ const ProductsCreated = () => {
                 <strong>Subcategory:</strong> {formData.subcategory}
               </p>
               <p>
+<<<<<<< HEAD
                 <strong>Corporate:</strong>{' '}
                 {formData.isCorporate ? '✅ Yes (B2B)' : '❌ No (B2C)'}
+=======
+                <strong>Corporate:</strong>{" "}
+                {formData.isCorporate ? "✅ Yes (B2B)" : "❌ No (B2C)"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               </p>
             </div>
           </>

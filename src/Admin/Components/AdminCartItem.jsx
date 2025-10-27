@@ -1,7 +1,14 @@
+<<<<<<< HEAD
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+=======
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import axios from "axios";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
 const AdminCartItem = ({ product }) => {
   const navigator = useNavigate();
@@ -14,10 +21,17 @@ const AdminCartItem = ({ product }) => {
   const onDeleted = async (id) => {
     try {
       const res = await axios.delete(
+<<<<<<< HEAD
         `http://localhost:3000/products/deleted/${id}`
       );
       if (res) {
         toast.success('Product Is Deleted');
+=======
+        `https://duco-backend.onrender.com/products/deleted/${id}`
+      );
+      if (res) {
+        toast.success("Product Is Deleted");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
         window.location.reload();
       }
     } catch (error) {
@@ -43,7 +57,11 @@ const AdminCartItem = ({ product }) => {
           onClick={() => setOpenColors(!openColors)}
           className="mt-3 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm px-4 py-2 rounded-md transition"
         >
+<<<<<<< HEAD
           {openColors ? '▲ Hide Variants' : '▼ Show Variants'}
+=======
+          {openColors ? "▲ Hide Variants" : "▼ Show Variants"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
         </button>
 
         {/* Colors & Sizes - only visible when open */}

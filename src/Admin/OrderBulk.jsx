@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useEffect, useMemo, useState } from 'react';
 import OrderDetailsCard from '../Admin/Components/OrderDetailsCard'; // <-- make sure path is correct
 
@@ -15,6 +16,19 @@ const statusClass = (s = '') => {
       return 'bg-rose-500 text-white';
     default:
       return 'bg-gray-400 text-white';
+=======
+import React, { useEffect,useMemo, useState } from "react";
+import OrderDetailsCard from "../Admin/Components/OrderDetailsCard"; // <-- make sure path is correct
+
+const statusClass = (s = "") => {
+  switch (s) {
+    case "Pending": return "bg-amber-500 text-white";
+    case "Processing": return "bg-sky-500 text-white";
+    case "Shipped": return "bg-purple-500 text-white";
+    case "Delivered": return "bg-emerald-500 text-white";
+    case "Cancelled": return "bg-rose-500 text-white";
+    default: return "bg-gray-400 text-white";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   }
 };
 
@@ -25,11 +39,19 @@ const OrderBulk = () => {
 
   const fetchOrders = async () => {
     try {
+<<<<<<< HEAD
       const res = await fetch('http://localhost:3000/api/order');
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch orders', err);
+=======
+      const res = await fetch("https://duco-backend.onrender.com/api/order");
+      const data = await res.json();
+      setOrders(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch orders", err);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     } finally {
       setLoading(false);
     }
@@ -39,6 +61,7 @@ const OrderBulk = () => {
     fetchOrders();
   }, []);
 
+<<<<<<< HEAD
   const bulkOrders = useMemo(() => {
     return (orders ?? []).filter((order) =>
       (order.products ?? []).some((prod) =>
@@ -47,6 +70,18 @@ const OrderBulk = () => {
     );
   }, [orders]);
 
+=======
+const bulkOrders = useMemo(() => {
+  return (orders ?? []).filter(order =>
+    (order.products ?? []).some(prod =>
+      Object.values(prod?.quantity ?? {}).some(qty => Number(qty) > 50)
+    )
+  );
+}, [orders]);
+
+
+  
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   console.log(bulkOrders);
   if (loading) return <div className="text-center p-4">Loading orders...</div>;
 
@@ -68,6 +103,7 @@ const OrderBulk = () => {
                 {/* Left: Basic info */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
+<<<<<<< HEAD
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusClass(
                         order.status
@@ -91,15 +127,39 @@ const OrderBulk = () => {
                       year: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit',
+=======
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusClass(order.status)}`}>
+                      {order.status}
+                    </span>
+                    <span className="text-xs text-gray-500 truncate">#{order._id}</span>
+                  </div>
+
+                  <p className="font-semibold text-sm sm:text-base truncate">
+                    {first.products_name || "Unnamed product"}
+                  </p>
+
+                  <p className="text-xs text-gray-600">
+                    {new Date(order.createdAt).toLocaleString("en-IN", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     })}
                   </p>
 
                   <p className="text-xs text-gray-700 mt-1">
                     {order?.address?.fullName
+<<<<<<< HEAD
                       ? `${order.address.fullName} • ${
                           order.address.city || ''
                         }`
                       : 'No address'}
+=======
+                      ? `${order.address.fullName} • ${order.address.city || ""}`
+                      : "No address"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   </p>
                 </div>
 
@@ -148,4 +208,8 @@ const OrderBulk = () => {
   );
 };
 
+<<<<<<< HEAD
 export default OrderBulk;
+=======
+export default OrderBulk;
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949

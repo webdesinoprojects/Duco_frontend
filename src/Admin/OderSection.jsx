@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useEffect, useState } from 'react';
 import OrderDetailsCard from '../Admin/Components/OrderDetailsCard'; // ✅ ensure path is correct
 
@@ -20,6 +21,22 @@ const statusClass = (s = '') => {
       return 'bg-orange-500 text-white';
     default:
       return 'bg-gray-400 text-white';
+=======
+import React, { useEffect, useState } from "react";
+import OrderDetailsCard from "../Admin/Components/OrderDetailsCard"; // ✅ ensure path is correct
+
+// ✅ Better status badge colors
+const statusClass = (s = "") => {
+  switch (s) {
+    case "Pending": return "bg-amber-500 text-white";
+    case "Processing": return "bg-sky-500 text-white";
+    case "Shipped": return "bg-purple-500 text-white";
+    case "Delivered": return "bg-emerald-500 text-white";
+    case "Cancelled": return "bg-rose-500 text-white";
+    case "Payment Verification Failed": return "bg-red-500 text-white";
+    case "Payment Verification Failed (50%)": return "bg-orange-500 text-white";
+    default: return "bg-gray-400 text-white";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
   }
 };
 
@@ -30,7 +47,11 @@ const OderSection = () => {
 
   const fetchOrders = async () => {
     try {
+<<<<<<< HEAD
       const res = await fetch('http://localhost:3000/api/order');
+=======
+      const res = await fetch("https://duco-backend.onrender.com/api/order");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       const data = await res.json();
 
       // ✅ handle both formats {orders: [...]} or [...]
@@ -42,7 +63,11 @@ const OderSection = () => {
         setOrders([]);
       }
     } catch (err) {
+<<<<<<< HEAD
       console.error('❌ Failed to fetch orders', err);
+=======
+      console.error("❌ Failed to fetch orders", err);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       setOrders([]);
     } finally {
       setLoading(false);
@@ -65,7 +90,11 @@ const OderSection = () => {
         <div className="space-y-4">
           {orders.map((order) => {
             const first = order?.products?.[0] || order?.items?.[0] || {};
+<<<<<<< HEAD
             const email = order?.address?.email || order?.user?.email || 'N/A';
+=======
+            const email = order?.address?.email || order?.user?.email || "N/A";
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
             return (
               <div
@@ -92,7 +121,11 @@ const OderSection = () => {
                     {first.image && (
                       <img
                         src={first.image}
+<<<<<<< HEAD
                         alt={first.name || 'Product'}
+=======
+                        alt={first.name || "Product"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                         className="w-10 h-10 rounded object-contain border"
                       />
                     )}
@@ -100,26 +133,44 @@ const OderSection = () => {
                       {first.name ||
                         first.products_name ||
                         first.product_name ||
+<<<<<<< HEAD
                         'Unnamed product'}
+=======
+                        "Unnamed product"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     </p>
                   </div>
 
                   <p className="text-xs text-gray-600">
+<<<<<<< HEAD
                     {new Date(order.createdAt).toLocaleString('en-IN', {
                       day: '2-digit',
                       month: 'long',
                       year: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit',
+=======
+                    {new Date(order.createdAt).toLocaleString("en-IN", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                     })}
                   </p>
 
                   <p className="text-xs text-gray-700 mt-1">
                     {order?.address?.fullName
+<<<<<<< HEAD
                       ? `${order.address.fullName} • ${
                           order.address.city || ''
                         }`
                       : 'No address'}
+=======
+                      ? `${order.address.fullName} • ${order.address.city || ""}`
+                      : "No address"}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   </p>
 
                   <p className="text-xs text-gray-500">📧 {email}</p>

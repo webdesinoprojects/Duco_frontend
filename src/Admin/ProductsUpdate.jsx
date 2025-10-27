@@ -10,6 +10,7 @@ const ProductsUpdate = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [subcategories, setSubcategories] = useState([]);
 
+<<<<<<< HEAD
   const [formData, setFormData] = useState(
     productData || {
       products_name: '',
@@ -29,23 +30,52 @@ const ProductsUpdate = () => {
       isCorporate: false, // ✅ new field added here too
     }
   );
+=======
+  const [formData, setFormData] = useState(productData || {
+    products_name: '',
+    image_url: [{
+      url: [''],
+      color: '',
+      colorcode: '',
+      videolink: '',
+      content: [{ size: '', minstock: 1 }],
+      designtshirt: ['']
+    }],
+    pricing: [{ quantity: '', price_per: '', discount: 0 }],
+    Desciptions: [''],
+    subcategory: '',
+    isCorporate: false, // ✅ new field added here too
+  });
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
   useEffect(() => {
     const getSubCategories = async () => {
       try {
+<<<<<<< HEAD
         const res = await axios.get(
           'http://localhost:3000/subcategory/getallsubctg'
         );
         setSubcategories(res.data.subCategory || []);
       } catch (err) {
         console.error('Error fetching subcategories:', err);
+=======
+        const res = await axios.get("https://duco-backend.onrender.com/subcategory/getallsubctg");
+        setSubcategories(res.data.subCategory || []);
+      } catch (err) {
+        console.error("Error fetching subcategories:", err);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       }
     };
     getSubCategories();
   }, []);
 
+<<<<<<< HEAD
   const nextStep = () => setCurrentStep((prev) => prev + 1);
   const prevStep = () => setCurrentStep((prev) => prev - 1);
+=======
+  const nextStep = () => setCurrentStep(prev => prev + 1);
+  const prevStep = () => setCurrentStep(prev => prev - 1);
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
 
   const handleChange = (e, field) => {
     setFormData({ ...formData, [field]: e.target.value });
@@ -78,6 +108,7 @@ const ProductsUpdate = () => {
   const addImageField = () => {
     setFormData({
       ...formData,
+<<<<<<< HEAD
       image_url: [
         ...formData.image_url,
         {
@@ -89,6 +120,16 @@ const ProductsUpdate = () => {
           designtshirt: [''],
         },
       ],
+=======
+      image_url: [...formData.image_url, {
+        url: [''],
+        color: '',
+        colorcode: '',
+        videolink: '',
+        content: [{ size: '', minstock: 1 }],
+        designtshirt: ['']
+      }]
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     });
   };
 
@@ -123,10 +164,14 @@ const ProductsUpdate = () => {
   const addPricingField = () => {
     setFormData({
       ...formData,
+<<<<<<< HEAD
       pricing: [
         ...formData.pricing,
         { quantity: '', price_per: '', discount: 0 },
       ],
+=======
+      pricing: [...formData.pricing, { quantity: '', price_per: '', discount: 0 }]
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     });
   };
 
@@ -138,6 +183,7 @@ const ProductsUpdate = () => {
     e.preventDefault();
     try {
       const id = productData?._id;
+<<<<<<< HEAD
       const res = await axios.put(
         `http://localhost:3000/products/update/${id}`,
         formData
@@ -147,12 +193,21 @@ const ProductsUpdate = () => {
     } catch (error) {
       console.error('Error updating product:', error);
       alert('Something went wrong while updating product');
+=======
+      const res = await axios.put(`https://duco-backend.onrender.com/products/update/${id}`, formData);
+      alert(res?.data?.message || "Product updated successfully");
+      navigate("/admin");
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert("Something went wrong while updating product");
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
     }
   };
 
   const StepNavigation = () => (
     <div className="flex justify-between mt-6">
       {currentStep > 1 && (
+<<<<<<< HEAD
         <button
           onClick={prevStep}
           type="button"
@@ -177,12 +232,22 @@ const ProductsUpdate = () => {
         >
           ✅ Update
         </button>
+=======
+        <button onClick={prevStep} type="button" className="bg-gray-200 hover:bg-gray-300 px-5 py-2 rounded shadow">⏪ Back</button>
+      )}
+      {currentStep < 6 && (
+        <button onClick={nextStep} type="button" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded shadow">Next ⏩</button>
+      )}
+      {currentStep === 6 && (
+        <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded shadow">✅ Update</button>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
       )}
     </div>
   );
 
   return (
     <div className="max-w-5xl mx-auto p-8 bg-white shadow-xl rounded-lg border border-slate-100">
+<<<<<<< HEAD
       <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
         ✏️ Update Product{' '}
         <span className="text-base block mt-1 text-gray-500">
@@ -190,6 +255,11 @@ const ProductsUpdate = () => {
         </span>
       </h2>
       <form onSubmit={handleSubmit} className="space-y-6">
+=======
+      <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">✏️ Update Product <span className="text-base block mt-1 text-gray-500">Step {currentStep} of 6</span></h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
         {currentStep === 1 && (
           <input
             type="text"
@@ -203,6 +273,7 @@ const ProductsUpdate = () => {
 
         {currentStep === 2 && (
           <>
+<<<<<<< HEAD
             <h3 className="font-semibold text-lg text-gray-700">
               Images, Color & Sizes
             </h3>
@@ -242,11 +313,22 @@ const ProductsUpdate = () => {
                     }
                     className="border p-2 rounded"
                   />
+=======
+            <h3 className="font-semibold text-lg text-gray-700">Images, Color & Sizes</h3>
+            {formData.image_url.map((img, imgIndex) => (
+              <div key={imgIndex} className="border border-slate-200 p-5 bg-white mb-6 rounded-lg shadow">
+                <h4 className="text-sm font-semibold mb-3 text-blue-700">Image Block #{imgIndex + 1}</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <input type="text" placeholder="Color" value={img.color} onChange={(e) => handleNestedChange(e, 'image_url', imgIndex, 'color')} className="border p-2 rounded" />
+                  <input type="text" placeholder="Color Code" value={img.colorcode} onChange={(e) => handleNestedChange(e, 'image_url', imgIndex, 'colorcode')} className="border p-2 rounded" />
+                  <input type="text" placeholder="Video Link" value={img.videolink} onChange={(e) => handleNestedChange(e, 'image_url', imgIndex, 'videolink')} className="border p-2 rounded" />
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 </div>
 
                 <div className="mt-3 space-y-2">
                   {img.url.map((url, urlIndex) => (
                     <div key={urlIndex} className="flex gap-3 items-center">
+<<<<<<< HEAD
                       <input
                         type="text"
                         placeholder={`Image URL #${urlIndex + 1}`}
@@ -318,12 +400,35 @@ const ProductsUpdate = () => {
                   <h4 className="text-sm font-medium text-gray-700">
                     Design T-Shirts
                   </h4>
+=======
+                      <input type="text" placeholder={`Image URL #${urlIndex + 1}`} value={url} onChange={(e) => handleImageUrlChange(e, imgIndex, urlIndex)} className="w-full border p-2 rounded" />
+                      {url && <img src={url} alt="preview" className="w-16 h-16 object-cover border rounded" />}
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addImageUrl(imgIndex)} className="text-blue-500 text-sm">+ Add Image URL</button>
+                </div>
+
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700">Size & Stock</h4>
+                  {img.content.map((contentItem, contentIndex) => (
+                    <div key={contentIndex} className="flex gap-4 mt-2">
+                      <input type="text" placeholder={`Size #${contentIndex + 1}`} value={contentItem.size} onChange={(e) => handleContentChange(e, imgIndex, contentIndex, 'size')} className="w-1/2 border p-2 rounded" />
+                      <input type="number" placeholder="Min Stock" value={contentItem.minstock} onChange={(e) => handleContentChange(e, imgIndex, contentIndex, 'minstock')} className="w-1/2 border p-2 rounded" />
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addContentField(imgIndex)} className="text-blue-500 text-sm mt-2">+ Add Size</button>
+                </div>
+
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700">Design T-Shirts</h4>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                   {(img.designtshirt || []).map((design, designIndex) => (
                     <input
                       key={designIndex}
                       type="text"
                       placeholder={`Design #${designIndex + 1}`}
                       value={design}
+<<<<<<< HEAD
                       onChange={(e) =>
                         handleDesignChange(e, imgIndex, designIndex)
                       }
@@ -347,11 +452,23 @@ const ProductsUpdate = () => {
             >
               + Add New Image Block
             </button>
+=======
+                      onChange={(e) => handleDesignChange(e, imgIndex, designIndex)}
+                      className="w-full border p-2 rounded mb-2"
+                    />
+                  ))}
+                  <button type="button" onClick={() => addDesignField(imgIndex)} className="text-blue-500 text-sm">+ Add Design</button>
+                </div>
+              </div>
+            ))}
+            <button type="button" onClick={addImageField} className="text-sm text-blue-600 font-medium">+ Add New Image Block</button>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
           </>
         )}
 
         {currentStep === 3 && (
           <>
+<<<<<<< HEAD
             <h3 className="font-semibold text-lg text-gray-700">
               Pricing Tiers
             </h3>
@@ -393,11 +510,23 @@ const ProductsUpdate = () => {
             >
               + Add Price Tier
             </button>
+=======
+            <h3 className="font-semibold text-lg text-gray-700">Pricing Tiers</h3>
+            {formData.pricing.map((item, i) => (
+              <div key={i} className="grid grid-cols-3 gap-4 mb-3">
+                <input type="number" placeholder={`Qty #${i + 1}`} value={item.quantity} onChange={(e) => handleNestedChange(e, 'pricing', i, 'quantity')} className="border p-2 rounded" />
+                <input type="number" placeholder={`Price #${i + 1}`} value={item.price_per} onChange={(e) => handleNestedChange(e, 'pricing', i, 'price_per')} className="border p-2 rounded" />
+                <input type="number" placeholder={`Discount (%) #${i + 1}`} value={item.discount} onChange={(e) => handleNestedChange(e, 'pricing', i, 'discount')} className="border p-2 rounded" />
+              </div>
+            ))}
+            <button type="button" onClick={addPricingField} className="text-sm text-blue-600 font-medium">+ Add Price Tier</button>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
           </>
         )}
 
         {currentStep === 4 && (
           <>
+<<<<<<< HEAD
             <h3 className="font-semibold text-lg text-gray-700">
               Product Descriptions
             </h3>
@@ -417,14 +546,25 @@ const ProductsUpdate = () => {
             >
               + Add Description
             </button>
+=======
+            <h3 className="font-semibold text-lg text-gray-700">Product Descriptions</h3>
+            {formData.Desciptions.map((desc, i) => (
+              <textarea key={i} placeholder={`Description #${i + 1}`} value={desc} onChange={(e) => handleDescriptionChange(e, i)} className="w-full border p-2 rounded mb-2" />
+            ))}
+            <button type="button" onClick={addDescriptionField} className="text-sm text-blue-600 font-medium">+ Add Description</button>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
           </>
         )}
 
         {currentStep === 5 && (
           <>
+<<<<<<< HEAD
             <h3 className="font-semibold text-lg text-gray-700">
               Subcategory Reference
             </h3>
+=======
+            <h3 className="font-semibold text-lg text-gray-700">Subcategory Reference</h3>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
             <select
               value={formData.subcategory}
               onChange={(e) => handleChange(e, 'subcategory')}
@@ -432,9 +572,13 @@ const ProductsUpdate = () => {
             >
               <option value="">Select a Subcategory</option>
               {subcategories.map((cat) => (
+<<<<<<< HEAD
                 <option key={cat._id} value={cat._id}>
                   {cat.subcatogry}
                 </option>
+=======
+                <option key={cat._id} value={cat._id}>{cat.subcatogry}</option>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               ))}
             </select>
 
@@ -444,9 +588,13 @@ const ProductsUpdate = () => {
                 type="checkbox"
                 id="isCorporate"
                 checked={formData.isCorporate}
+<<<<<<< HEAD
                 onChange={(e) =>
                   setFormData({ ...formData, isCorporate: e.target.checked })
                 }
+=======
+                onChange={(e) => setFormData({ ...formData, isCorporate: e.target.checked })}
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
                 className="w-4 h-4 accent-blue-600"
               />
               <label htmlFor="isCorporate" className="text-gray-800 text-sm">
@@ -458,6 +606,7 @@ const ProductsUpdate = () => {
 
         {currentStep === 6 && (
           <>
+<<<<<<< HEAD
             <h3 className="text-xl font-semibold mb-3 text-gray-800">
               🧾 Review Your Product
             </h3>
@@ -510,6 +659,32 @@ const ProductsUpdate = () => {
               <p>
                 <strong>Descriptions:</strong>
               </p>
+=======
+            <h3 className="text-xl font-semibold mb-3 text-gray-800">🧾 Review Your Product</h3>
+            <div className="bg-gray-50 p-4 rounded space-y-3 text-sm">
+              <p><strong>Name:</strong> {formData.products_name}</p>
+              <p><strong>Corporate:</strong> {formData.isCorporate ? "✅ Yes (B2B)" : "❌ No (B2C)"}</p>
+              <p><strong>Subcategory:</strong> {formData.subcategory}</p>
+              <p><strong>Images:</strong></p>
+              {formData.image_url.map((img, i) => (
+                <div key={i} className="ml-4">
+                  <p>🎨 <strong>Color:</strong> {img.color} ({img.colorcode})</p>
+                  {img.url.map((url, j) => <p key={j} className="ml-4">• {url}</p>)}
+                  {img.videolink && <p className="ml-4">🎥 {img.videolink}</p>}
+                  {img.content.map((c, k) => (
+                    <p key={k} className="ml-6">👕 Size: {c.size}, Stock: {c.minstock}</p>
+                  ))}
+                  {img.designtshirt?.map((d, k) => (
+                    <p key={k} className="ml-6">🎨 Design: {d}</p>
+                  ))}
+                </div>
+              ))}
+              <p><strong>Pricing:</strong></p>
+              {formData.pricing.map((p, i) => (
+                <p key={i}>Qty: {p.quantity}, Price: ₹{p.price_per}, Discount: {p.discount}%</p>
+              ))}
+              <p><strong>Descriptions:</strong></p>
+>>>>>>> 2d517d099835553b4a53c6a9d813579d4901f949
               {formData.Desciptions.map((d, i) => (
                 <p key={i}>• {d}</p>
               ))}
