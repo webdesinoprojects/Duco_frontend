@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Component } from "react";
 import { Routes, Route } from "react-router-dom";
 import Layout from "./Layout.jsx";
 import Home from "./Pages/Home.jsx";
@@ -28,7 +28,7 @@ import PaymentPage from "./Pages/PaymentPage.jsx";
 import RefundReturnPolicy from "./Pages/RefundReturnPolicy.jsx";
 import PrivacyPolicy from "./Pages/PrivacyPolicy.jsx";
 import ShippingPolicy from "./Pages/ShippingPolicy.jsx";
-import TermsConditions from "./Pages/TermsConditions";
+import TermsConditions from "./Pages/TermsConditions.jsx";
 import OrderProcessing from "./Components/OrderProcessing.jsx";
 import OrderSection from "./Admin/OderSection.jsx";
 import SizeChange from "./Pages/SizeChange.jsx";
@@ -54,9 +54,40 @@ import InvoiceSet from "./Pages/InvoiceSet.jsx";
 import WalletPage from "./Pages/WalletPage.jsx";
 import OrderSuccess from "./Pages/OrderSuccess.jsx";
 
+// Error Boundary Component
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Error caught by boundary:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: "20px", color: "white", backgroundColor: "#0A0A0A", minHeight: "100vh" }}>
+          <h1>Something went wrong.</h1>
+          <pre style={{ color: "red" }}>{this.state.error?.toString()}</pre>
+          <button onClick={() => window.location.reload()} style={{ marginTop: "10px", padding: "10px", cursor: "pointer" }}>
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const App = () => {
   return (
-    <>
+    <ErrorBoundary>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -152,7 +183,7 @@ const App = () => {
           </Route>
         </Route>
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 };
 

@@ -48,6 +48,23 @@ const safeNum = (v, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+// ✅ Apply location-based pricing to a base price
+const applyLocationPricing = (basePrice, priceIncrease, conversionRate) => {
+  let price = safeNum(basePrice);
+  
+  // Step 1: Apply percentage increase (location markup)
+  if (priceIncrease) {
+    price += (price * safeNum(priceIncrease)) / 100;
+  }
+  
+  // Step 2: Apply currency conversion
+  if (conversionRate && conversionRate !== 1) {
+    price *= conversionRate;
+  }
+  
+  return Math.round(price);
+};
+
 // ✅ Count printed sides
 const countDesignSides = (item) => {
   const d = item?.design || {};
@@ -322,9 +339,17 @@ const Cart = () => {
       const printingCost = calculatePrintingCost(item); // Printing cost based on the sides
       const designCost = calculateDesignCost(item); // Custom design cost (text/image)
 
-      return sum + (basePrice + printingCost + designCost) * qty; // Total price per item
+      // ✅ Apply location pricing to the total item price (base + printing + design)
+      const itemTotalBeforeLocation = basePrice + printingCost + designCost;
+      const itemTotalWithLocation = applyLocationPricing(
+        itemTotalBeforeLocation,
+        priceIncrease,
+        conversionRate
+      );
+
+      return sum + itemTotalWithLocation * qty; // Total price per item with location adjustment
     }, 0);
-  }, [actualData]);
+  }, [actualData, priceIncrease, conversionRate]);
 
   const [pfPerUnit, setPfPerUnit] = useState(0);
   const [pfFlat, setPfFlat] = useState(0);
@@ -393,20 +418,19 @@ const Cart = () => {
   );
 
   const grandTotal = useMemo(() => {
-    let total = safeNum(baseTotal);
-
-    // Step 1: Apply % increase (e.g., location markup)
-    if (priceIncrease) {
-      total += (total * safeNum(priceIncrease)) / 100;
-    }
-
-    // Step 2: Convert to foreign currency
-    if (conversionRate && conversionRate !== 1) {
-      total *= conversionRate;
-    }
-
-    return Math.round(total);
-  }, [baseTotal, priceIncrease, conversionRate]);
+    // ✅ Since itemsSubtotal already has location pricing applied,
+    // we only need to apply it to printing and P&F costs
+    const printingWithLocation = applyLocationPricing(printingCost, priceIncrease, conversionRate);
+    const pfWithLocation = applyLocationPricing(pfCost, priceIncrease, conversionRate);
+    
+    // Taxable amount = items (already adjusted) + printing + P&F (both adjusted)
+    const adjustedTaxable = safeNum(itemsSubtotal) + printingWithLocation + pfWithLocation;
+    
+    // GST on adjusted taxable amount
+    const adjustedGst = (adjustedTaxable * safeNum(gstPercent)) / 100;
+    
+    return Math.round(adjustedTaxable + adjustedGst);
+  }, [itemsSubtotal, printingCost, pfCost, gstPercent, priceIncrease, conversionRate]);
 
   if (loadingProducts) return <Loading />;
   if (!cart.length)
@@ -458,20 +482,20 @@ const Cart = () => {
               </div>
               <div className="flex justify-between">
                 <span>Printing ({printingUnits} sides)</span>
-                <span>{formatCurrency(printingCost)}</span>
+                <span>{formatCurrency(applyLocationPricing(printingCost, priceIncrease, conversionRate))}</span>
               </div>
               <div className="flex justify-between">
                 <span>P&F</span>
-                <span>{formatCurrency(pfCost)}</span>
+                <span>{formatCurrency(applyLocationPricing(pfCost, priceIncrease, conversionRate))}</span>
               </div>
               <div className="flex justify-between">
                 <span>GST ({safeNum(gstPercent)}%)</span>
-                <span>{formatCurrency(gstTotal)}</span>
+                <span>{formatCurrency((itemsSubtotal + applyLocationPricing(printingCost, priceIncrease, conversionRate) + applyLocationPricing(pfCost, priceIncrease, conversionRate)) * (safeNum(gstPercent) / 100))}</span>
               </div>
               {priceIncrease && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-yellow-400">
                   <span>
-                    Location Adjustment ({resolvedLocation}, {currency})
+                    ✓ Location Pricing Applied ({resolvedLocation}, {currency})
                   </span>
                   <span>+{safeNum(priceIncrease)}%</span>
                 </div>

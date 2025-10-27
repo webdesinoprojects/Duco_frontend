@@ -17,7 +17,7 @@ const continentMapping = {
 const Home = () => {
   const { setLocation } = usePriceContext();
   const [banner, setBanner] = useState("");
-  const [Loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   // List of local videos for floating carousel
   const [videoList] = useState([
@@ -51,7 +51,7 @@ const Home = () => {
 
   return (
     <div className='h-full bg-[#0A0A0A] w-full text-white'>
-      <SectionHome1 imglink={banner} Loading={Loading} />
+      <SectionHome1 imglink={banner} loading={loading} />
       <SectionHome2 />
       <BannerHome link={"https://ik.imagekit.io/vuavxn05l/5213288.jpg?updatedAt=1757162698605"} />
       <TrendingHome />

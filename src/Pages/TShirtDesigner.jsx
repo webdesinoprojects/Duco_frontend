@@ -528,8 +528,23 @@ if (!Object.keys(map).length) {
 
       // Extract mappings
       const printroveProductId = extractPrintroveProductId(productDetails);
+      
+      // Enhanced logging for debugging
+      console.log("🔍 Product Details for Variant Mapping:", {
+        productId: productDetails?._id,
+        printroveProductId,
+        color: colorWithHash,
+        availableVariantSources: {
+          hasVariantMapping: !!productDetails?.variant_mapping,
+          hasPricing: !!productDetails?.pricing,
+          hasColorVariants: !!productDetails?.image_url?.find(e => e.colorcode === colorWithHash)?.variant_mapping,
+        },
+        rawProductData: productDetails
+      });
+      
       const variantMap = buildVariantMap(productDetails);
       console.log("🧭 Variant Map:", variantMap);
+      console.log("📦 Selected Quantities:", finalQuantities);
 
       // Build line items only for mapped sizes
       const printroveLineItems = Object.entries(finalQuantities)
@@ -544,22 +559,54 @@ if (!Object.keys(map).length) {
         (s) => !variantMap[canonSize(s)]
       );
 
+      // Validation: Check for missing Printrove Product ID
+      if (!printroveProductId) {
+        console.error("❌ Missing Printrove Product ID", {
+          productDetails,
+          extractedId: printroveProductId
+        });
+        const proceed = confirm(
+          "⚠️ Printrove Product ID is missing!\n\n" +
+          "This product cannot be synced with Printrove without a Product ID.\n" +
+          "Product: " + (productDetails?.products_name || "Unknown") + "\n\n" +
+          "Do you want to add it to cart anyway?\n(You'll need to contact admin to map it before checkout)"
+        );
+        if (!proceed) {
+          setIsSaving(false);
+          return;
+        }
+      }
+
       if (printroveLineItems.length === 0) {
         // ⚠️ No mapped sizes: continue (non-blocking) but flag clearly
-        console.warn("⚠️ No mapped variant IDs for any selected sizes.", {
+        console.error("❌ No mapped variant IDs for any selected sizes.", {
           finalQuantities,
           variantMap,
+          productDetails,
+          availableSources: {
+            variant_mapping: productDetails?.variant_mapping,
+            pricing: productDetails?.pricing,
+            colorVariants: productDetails?.image_url?.find(e => e.colorcode === colorWithHash)
+          }
         });
-        alert(
-          "No Printrove Variant IDs were found for your selected sizes.\nWe'll add the design to cart, but please map 'printrove_variant_id' per size before placing with Printrove."
+        const proceed = confirm(
+          "⚠️ No Printrove Variant IDs found!\n\n" +
+          "Selected sizes: " + Object.keys(finalQuantities).join(", ") + "\n" +
+          "Available mappings: " + Object.keys(variantMap).join(", ") + "\n\n" +
+          "This order cannot be placed with Printrove without variant IDs.\n" +
+          "Do you want to add it to cart anyway?\n(You'll need to contact admin to map variants before checkout)"
         );
+        if (!proceed) {
+          setIsSaving(false);
+          return;
+        }
       } else if (unmappedSizes.length) {
         // Some mapped, some not — continue with warning
         console.warn("⚠️ Unmapped sizes (not added to line items):", unmappedSizes);
         alert(
-          `Missing Printrove Variant IDs for sizes: ${unmappedSizes.join(
-            ", "
-          )}\nWe'll add mapped sizes to cart; please map the rest before placing the order.`
+          `⚠️ Missing Printrove Variant IDs for sizes: ${unmappedSizes.join(", ")}\n\n` +
+          `Mapped sizes: ${printroveLineItems.map(li => li.size).join(", ")}\n\n` +
+          `We'll add mapped sizes to cart; please contact admin to map the rest before placing the order.`
         );
       }
 
@@ -605,13 +652,25 @@ if (!Object.keys(map).length) {
         printroveProductId: printroveProductId || null,
         printroveVariantId: fallbackVariantId || null, // legacy single
         legacyVariant: fallbackVariantId,
+        printroveVariantsBySize: customProduct.printroveVariantsBySize,
         lineItems: printroveLineItems,
-        needsMapping: customProduct?.printroveNeedsMapping,
-        
+        needsMapping: customProduct.printroveNeedsMapping,
+        quantities: finalQuantities,
+        variantMap: variantMap
       });
 
+      // Final validation log
+      if (printroveLineItems.length > 0) {
+        console.log("✅ Product has valid Printrove mappings:", {
+          productId: printroveProductId,
+          mappedSizes: printroveLineItems.map(li => `${li.size}: ${li.printroveVariantId}`)
+        });
+      } else {
+        console.warn("⚠️ Product added to cart WITHOUT Printrove mappings - admin action required");
+      }
+
       addToCart(customProduct);
-      alert("Design saved and added to cart!");
+      alert("✅ Design saved and added to cart!");
       navigate("/cart");
     } catch (error) {
       console.error("Error saving design:", error);
