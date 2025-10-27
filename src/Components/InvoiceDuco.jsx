@@ -8,7 +8,9 @@ import React, { useMemo, useState } from "react";
 // ---------- helpers ----------
 const r2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
 const fmtINR = (n) => {
-  const parts = Number(n || 0).toFixed(2).split(".");
+  const parts = Number(n || 0)
+    .toFixed(2)
+    .split(".");
   let x = parts[0];
   const last3 = x.slice(-3);
   const other = x.slice(0, -3);
@@ -54,9 +56,7 @@ const toWordsIndian = (amount) => {
   let num = Math.floor(Math.max(0, Number(amount || 0)));
   if (num === 0) return "Zero";
   const two = (n) =>
-    n < 20
-      ? a[n]
-      : b[Math.floor(n / 10)] + (n % 10 ? " " + a[n % 10] : "");
+    n < 20 ? a[n] : b[Math.floor(n / 10)] + (n % 10 ? " " + a[n % 10] : "");
   const three = (n) =>
     n >= 100
       ? a[Math.floor(n / 100)] +
@@ -83,12 +83,16 @@ export default function InvoiceDucoTailwind({ data, editable = false }) {
   const d = useMemo(() => ({ ...base, ...(data || {}) }), [base, data]);
 
   // local state for charges in edit mode
-  const [pf, setPf] = useState(Number(d.charges?.pf || 0));
+  // TODO: Commented out packaging and forwarding for testing - uncomment later
+  // const [pf, setPf] = useState(Number(d.charges?.pf || 0));
+  const [pf, setPf] = useState(0); // Temporarily set to 0 for testing
   const [printing, setPrinting] = useState(Number(d.charges?.printing || 0));
   const charges = editable
     ? { pf, printing }
     : {
-        pf: Number(d.charges?.pf || 0),
+        // TODO: Commented out packaging and forwarding for testing - uncomment later
+        // pf: Number(d.charges?.pf || 0),
+        pf: 0, // Temporarily set to 0 for testing
         printing: Number(d.charges?.printing || 0),
       };
 
@@ -111,7 +115,8 @@ export default function InvoiceDucoTailwind({ data, editable = false }) {
     const normalize = (s) => (s || "").trim().toLowerCase();
     const companyState = normalize(d.company?.state);
     const supplyState = normalize(d.invoice?.placeOfSupply);
-    const isSameState = companyState && supplyState && companyState === supplyState;
+    const isSameState =
+      companyState && supplyState && companyState === supplyState;
 
     let cgstRate = 0,
       sgstRate = 0,
@@ -231,17 +236,13 @@ export default function InvoiceDucoTailwind({ data, editable = false }) {
               {calc.isSameState ? (
                 <>
                   <tr>
-                    <td className="border p-1">
-                      Add: CGST @ {calc.cgstRate}%
-                    </td>
+                    <td className="border p-1">Add: CGST @ {calc.cgstRate}%</td>
                     <td className="border p-1 text-right">
                       {fmtINR(calc.cgst)}
                     </td>
                   </tr>
                   <tr>
-                    <td className="border p-1">
-                      Add: SGST @ {calc.sgstRate}%
-                    </td>
+                    <td className="border p-1">Add: SGST @ {calc.sgstRate}%</td>
                     <td className="border p-1 text-right">
                       {fmtINR(calc.sgst)}
                     </td>
@@ -249,20 +250,14 @@ export default function InvoiceDucoTailwind({ data, editable = false }) {
                 </>
               ) : (
                 <tr>
-                  <td className="border p-1">
-                    Add: IGST @ {calc.igstRate}%
-                  </td>
-                  <td className="border p-1 text-right">
-                    {fmtINR(calc.igst)}
-                  </td>
+                  <td className="border p-1">Add: IGST @ {calc.igstRate}%</td>
+                  <td className="border p-1 text-right">{fmtINR(calc.igst)}</td>
                 </tr>
               )}
 
               <tr className="font-bold">
                 <td className="border p-1">Grand Total</td>
-                <td className="border p-1 text-right">
-                  {fmtINR(calc.grand)}
-                </td>
+                <td className="border p-1 text-right">{fmtINR(calc.grand)}</td>
               </tr>
             </tbody>
           </table>

@@ -1,30 +1,32 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Category = () => {
-  const [category, setCategory] = useState("");
-  const [subcatogry, setSubcatogry] = useState("");
+  const [category, setCategory] = useState('');
+  const [subcatogry, setSubcatogry] = useState('');
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
 
   // Fetch categories from API
   const getCategories = async () => {
     try {
-      const res = await axios.get("https://duco-backend.onrender.com/category/getall");
+      const res = await axios.get('http://localhost:3000/category/getall');
       setCategories(res.data.category || []);
     } catch (err) {
-      console.error("Error fetching categories:", err);
+      console.error('Error fetching categories:', err);
     }
   };
 
   // Fetch subcategories from API
   const getSubCategories = async () => {
     try {
-      const res = await axios.get("https://duco-backend.onrender.com/subcategory/getallsubctg");
+      const res = await axios.get(
+        'http://localhost:3000/subcategory/getallsubctg'
+      );
       setSubcategories(res.data.subCategory || []);
     } catch (err) {
-      console.error("Error fetching subcategories:", err);
+      console.error('Error fetching subcategories:', err);
     }
   };
 
@@ -38,11 +40,11 @@ const Category = () => {
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("https://duco-backend.onrender.com/category/create", { category });
-      setCategory("");
+      await axios.post('http://localhost:3000/category/create', { category });
+      setCategory('');
       getCategories();
     } catch (err) {
-      console.error("Error creating category:", err);
+      console.error('Error creating category:', err);
     }
   };
 
@@ -50,15 +52,15 @@ const Category = () => {
   const handleSubCategorySubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("https://duco-backend.onrender.com/subcategory/create", {
+      await axios.post('http://localhost:3000/subcategory/create', {
         subcatogry,
         categoryId: [selectedCategoryId], // Assuming categoryId is an array
       });
-      setSubcatogry("");
-      setSelectedCategoryId("");
+      setSubcatogry('');
+      setSelectedCategoryId('');
       getSubCategories();
     } catch (err) {
-      console.error("Error creating subcategory:", err);
+      console.error('Error creating subcategory:', err);
     }
   };
 
@@ -83,7 +85,9 @@ const Category = () => {
       </form>
 
       {/* Create Subcategory */}
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Create Subcategory</h2>
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">
+        Create Subcategory
+      </h2>
       <form onSubmit={handleSubCategorySubmit} className="space-y-4 mb-8">
         <input
           type="text"
@@ -112,42 +116,39 @@ const Category = () => {
         </button>
       </form>
 
-      
-
       {/* Show All Subcategories */}
 
       <div className="flex flex-row   justify-between">
         <div>
-            {/* Show All Categories */}
-      <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-700">Available Categories</h3>
-      <ul className="list-disc list-inside space-y-1 text-gray-600">
-        {categories.map((cat) => (
-          <li key={cat._id}>{cat.category}</li>
-        ))}
-      </ul>
-
+          {/* Show All Categories */}
+          <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-700">
+            Available Categories
+          </h3>
+          <ul className="list-disc list-inside space-y-1 text-gray-600">
+            {categories.map((cat) => (
+              <li key={cat._id}>{cat.category}</li>
+            ))}
+          </ul>
         </div>
 
         <div>
- <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-700">Available Subcategories</h3>
-      <ul className="list-disc list-inside space-y-1 text-gray-600">
-        {subcategories.map((sub) => (
-          <li key={sub._id}>
-             <strong>{sub.subcatogry}</strong>{" "}
-            {sub.categoryId?.length > 0 && (
-              <span className="text-sm text-gray-500">
-                (Belongs to: {sub.categoryId[0]?.category})
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
+          <h3 className="text-xl font-semibold mt-8 mb-2 text-gray-700">
+            Available Subcategories
+          </h3>
+          <ul className="list-disc list-inside space-y-1 text-gray-600">
+            {subcategories.map((sub) => (
+              <li key={sub._id}>
+                <strong>{sub.subcatogry}</strong>{' '}
+                {sub.categoryId?.length > 0 && (
+                  <span className="text-sm text-gray-500">
+                    (Belongs to: {sub.categoryId[0]?.category})
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
-       
-
-
       </div>
-      
     </div>
   );
 };

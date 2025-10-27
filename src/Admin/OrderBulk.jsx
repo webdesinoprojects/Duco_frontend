@@ -1,14 +1,20 @@
-import React, { useEffect,useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import OrderDetailsCard from "../Admin/Components/OrderDetailsCard"; // <-- make sure path is correct
 
 const statusClass = (s = "") => {
   switch (s) {
-    case "Pending": return "bg-amber-500 text-white";
-    case "Processing": return "bg-sky-500 text-white";
-    case "Shipped": return "bg-purple-500 text-white";
-    case "Delivered": return "bg-emerald-500 text-white";
-    case "Cancelled": return "bg-rose-500 text-white";
-    default: return "bg-gray-400 text-white";
+    case "Pending":
+      return "bg-amber-500 text-white";
+    case "Processing":
+      return "bg-sky-500 text-white";
+    case "Shipped":
+      return "bg-purple-500 text-white";
+    case "Delivered":
+      return "bg-emerald-500 text-white";
+    case "Cancelled":
+      return "bg-rose-500 text-white";
+    default:
+      return "bg-gray-400 text-white";
   }
 };
 
@@ -19,7 +25,7 @@ const OrderBulk = () => {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch("https://duco-backend.onrender.com/api/order");
+      const res = await fetch("http://localhost:3000/api/order");
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -33,16 +39,14 @@ const OrderBulk = () => {
     fetchOrders();
   }, []);
 
-const bulkOrders = useMemo(() => {
-  return (orders ?? []).filter(order =>
-    (order.products ?? []).some(prod =>
-      Object.values(prod?.quantity ?? {}).some(qty => Number(qty) > 50)
-    )
-  );
-}, [orders]);
+  const bulkOrders = useMemo(() => {
+    return (orders ?? []).filter((order) =>
+      (order.products ?? []).some((prod) =>
+        Object.values(prod?.quantity ?? {}).some((qty) => Number(qty) > 50)
+      )
+    );
+  }, [orders]);
 
-
-  
   console.log(bulkOrders);
   if (loading) return <div className="text-center p-4">Loading orders...</div>;
 
@@ -64,10 +68,16 @@ const bulkOrders = useMemo(() => {
                 {/* Left: Basic info */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusClass(order.status)}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusClass(
+                        order.status
+                      )}`}
+                    >
                       {order.status}
                     </span>
-                    <span className="text-xs text-gray-500 truncate">#{order._id}</span>
+                    <span className="text-xs text-gray-500 truncate">
+                      #{order._id}
+                    </span>
                   </div>
 
                   <p className="font-semibold text-sm sm:text-base truncate">
@@ -86,7 +96,9 @@ const bulkOrders = useMemo(() => {
 
                   <p className="text-xs text-gray-700 mt-1">
                     {order?.address?.fullName
-                      ? `${order.address.fullName} • ${order.address.city || ""}`
+                      ? `${order.address.fullName} • ${
+                          order.address.city || ""
+                        }`
                       : "No address"}
                   </p>
                 </div>

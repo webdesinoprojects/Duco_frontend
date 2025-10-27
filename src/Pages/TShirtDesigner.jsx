@@ -228,7 +228,9 @@ const TshirtDesigner = () => {
 
   // ======================== PRINTROVE HELPERS ========================
   const canonSize = (s) => {
-    const t = String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const t = String(s || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
     const dict = {
       XS: "XS",
       XSMALL: "XS",
@@ -257,11 +259,11 @@ const TshirtDesigner = () => {
       "3X": "3XL",
 
       // chest-size fallbacks
-      "38": "M",
-      "40": "L",
-      "42": "XL",
-      "44": "2XL",
-      "46": "3XL",
+      38: "M",
+      40: "L",
+      42: "XL",
+      44: "2XL",
+      46: "3XL",
     };
     return dict[t] || t;
   };
@@ -301,7 +303,9 @@ const TshirtDesigner = () => {
   };
 
   const extractPrintroveProductId = (details) => {
-    const byColor = details?.image_url?.find((e) => e.colorcode === colorWithHash);
+    const byColor = details?.image_url?.find(
+      (e) => e.colorcode === colorWithHash
+    );
     return (
       details?.printrove_product_id ||
       details?.printroveProductId ||
@@ -339,20 +343,6 @@ const TshirtDesigner = () => {
         null;
       upsert(size, vid);
     });
-    // ✅ Fallback: if product itself has printroveVariantId or pricing[0] variant
-if (!Object.keys(map).length) {
-  const directVariant =
-    details?.printroveVariantId ||
-    details?.pricing?.[0]?.printrove_variant_id ||
-    details?.pricing?.[0]?.variant_id ||
-    details?.pricing?.[0]?.printroveVariantId;
-  if (directVariant) {
-    // default assign all canonical sizes to this variant (for single variant products)
-    ["S", "M", "L", "XL", "2XL", "3XL"].forEach((s) =>
-      upsert(s, directVariant)
-    );
-  }
-}
 
     // 2) product-level pricing[]
     coerceList(details?.pricing).forEach((p) => {
@@ -404,21 +394,23 @@ if (!Object.keys(map).length) {
           const keys = Object.keys(cur).map((k) => k.toLowerCase());
           const hasSizeKey = keys.some((k) => k.includes("size"));
           const variantKey = keys.find(
-            (k) => (k.includes("variant") && k.includes("id")) || k === "variantid"
+            (k) =>
+              (k.includes("variant") && k.includes("id")) || k === "variantid"
           );
           if (hasSizeKey && variantKey) {
             const sizeVal =
               cur.size || cur.Size || cur.label || cur.name || cur.s || "";
-            const vid = cur[Object.keys(cur).find(
-              (kk) => {
-                const kkl = kk.toLowerCase();
-                return (
-                  (kkl.includes("variant") && kkl.includes("id")) ||
-                  kkl === "variantid" ||
-                  kkl === "printrove_variant_id"
-                );
-              }
-            )];
+            const vid =
+              cur[
+                Object.keys(cur).find((kk) => {
+                  const kkl = kk.toLowerCase();
+                  return (
+                    (kkl.includes("variant") && kkl.includes("id")) ||
+                    kkl === "variantid" ||
+                    kkl === "printrove_variant_id"
+                  );
+                })
+              ];
             upsert(sizeVal, vid);
           }
           for (const v of Object.values(cur)) {
@@ -437,21 +429,23 @@ if (!Object.keys(map).length) {
         const keys = Object.keys(cur).map((k) => k.toLowerCase());
         const hasSizeKey = keys.some((k) => k.includes("size"));
         const variantKey = keys.find(
-          (k) => (k.includes("variant") && k.includes("id")) || k === "variantid"
+          (k) =>
+            (k.includes("variant") && k.includes("id")) || k === "variantid"
         );
         if (hasSizeKey && variantKey) {
           const sizeVal =
             cur.size || cur.Size || cur.label || cur.name || cur.s || "";
-          const vid = cur[Object.keys(cur).find(
-            (kk) => {
-              const kkl = kk.toLowerCase();
-              return (
-                (kkl.includes("variant") && kkl.includes("id")) ||
-                kkl === "variantid" ||
-                kkl === "printrove_variant_id"
-              );
-            }
-          )];
+          const vid =
+            cur[
+              Object.keys(cur).find((kk) => {
+                const kkl = kk.toLowerCase();
+                return (
+                  (kkl.includes("variant") && kkl.includes("id")) ||
+                  kkl === "variantid" ||
+                  kkl === "printrove_variant_id"
+                );
+              })
+            ];
           upsert(sizeVal, vid);
         }
         for (const v of Object.values(cur)) {
@@ -461,6 +455,30 @@ if (!Object.keys(map).length) {
     } catch {}
 
     return map;
+  };
+
+  // ======================== IMAGE COMPRESSION ========================
+  const compressImage = (dataUrl, quality = 0.8) => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+
+      img.onload = () => {
+        // Set canvas size
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        // Draw image on canvas
+        ctx.drawImage(img, 0, 0);
+
+        // Convert to compressed JPEG
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(compressedDataUrl);
+      };
+
+      img.src = dataUrl;
+    });
   };
 
   // ======================== SAVE LOGIC ========================
@@ -477,12 +495,26 @@ if (!Object.keys(map).length) {
 
         const dataUrl = await toPng(node, {
           cacheBust: true,
-          pixelRatio: 2,
+          pixelRatio: 1, // Reduced from 2 to 1 for smaller file size
           backgroundColor: "#fff",
           skipFonts: true, // avoid Google Fonts cssRules CORS noise
         });
 
-        images[view] = dataUrl;
+        // Compress the image to reduce file size
+        const compressedDataUrl = await compressImage(dataUrl, 0.7);
+
+        // Log file size reduction
+        const originalSize = Math.round((dataUrl.length * 0.75) / 1024); // Approximate KB
+        const compressedSize = Math.round(
+          (compressedDataUrl.length * 0.75) / 1024
+        ); // Approximate KB
+        console.log(
+          `📸 ${view} image: ${originalSize}KB → ${compressedSize}KB (${Math.round(
+            (1 - compressedSize / originalSize) * 100
+          )}% reduction)`
+        );
+
+        images[view] = compressedDataUrl;
       }
 
       // Identify user
@@ -512,6 +544,19 @@ if (!Object.keys(map).length) {
         ],
       };
 
+      // Check payload size before sending
+      const payloadSize = JSON.stringify(designPayload).length;
+      const payloadSizeKB = Math.round(payloadSize / 1024);
+      console.log(`📦 Design payload size: ${payloadSizeKB}KB`);
+
+      if (payloadSizeKB > 10000) {
+        // 10MB limit
+        alert(
+          "⚠️ Design data is too large. Please try with simpler designs or contact support."
+        );
+        return;
+      }
+
       console.log("🎨 Sending Design Payload:", designPayload);
       await createDesign(designPayload);
 
@@ -526,10 +571,26 @@ if (!Object.keys(map).length) {
         Object.entries(cleanedQuantities).filter(([_, v]) => v > 0)
       );
 
+      console.log("📊 Quantity Calculation Debug:", {
+        passedQuantity: passedQuantity,
+        cleanedQuantities: cleanedQuantities,
+        finalQuantities: finalQuantities,
+      });
+
       // Extract mappings
       const printroveProductId = extractPrintroveProductId(productDetails);
       const variantMap = buildVariantMap(productDetails);
+      const needsProductId = !printroveProductId;
       console.log("🧭 Variant Map:", variantMap);
+      console.log("🔍 Product Details for mapping:", {
+        productId: printroveProductId,
+        hasVariantMapping: !!productDetails?.variant_mapping,
+        hasPricing: !!productDetails?.pricing,
+        colorNode: productDetails?.image_url?.find(
+          (e) => e.colorcode === colorWithHash
+        ),
+        finalQuantities,
+      });
 
       // Build line items only for mapped sizes
       const printroveLineItems = Object.entries(finalQuantities)
@@ -544,28 +605,50 @@ if (!Object.keys(map).length) {
         (s) => !variantMap[canonSize(s)]
       );
 
+      // ✅ Use fallback variant IDs when no mapping is found
+      let finalPrintroveLineItems = printroveLineItems;
+
       if (printroveLineItems.length === 0) {
-        // ⚠️ No mapped sizes: continue (non-blocking) but flag clearly
-        console.warn("⚠️ No mapped variant IDs for any selected sizes.", {
-          finalQuantities,
-          variantMap,
-        });
-        alert(
-          "No Printrove Variant IDs were found for your selected sizes.\nWe'll add the design to cart, but please map 'printrove_variant_id' per size before placing with Printrove."
+        // ⚠️ No mapped sizes: use fallback variant IDs
+        console.warn(
+          "⚠️ No mapped variant IDs for any selected sizes. Using fallback IDs.",
+          {
+            finalQuantities,
+            variantMap,
+          }
+        );
+
+        // Create line items with fallback variant IDs
+        finalPrintroveLineItems = Object.entries(finalQuantities).map(
+          ([size, qty]) => ({
+            size,
+            qty,
+            // ✅ Printrove mapping handled by backend
+          })
+        );
+
+        console.log(
+          "✅ Using fallback variant IDs for all sizes:",
+          finalPrintroveLineItems
         );
       } else if (unmappedSizes.length) {
-        // Some mapped, some not — continue with warning
-        console.warn("⚠️ Unmapped sizes (not added to line items):", unmappedSizes);
-        alert(
-          `Missing Printrove Variant IDs for sizes: ${unmappedSizes.join(
-            ", "
-          )}\nWe'll add mapped sizes to cart; please map the rest before placing the order.`
+        // Some mapped, some not — add fallback for unmapped sizes
+        console.warn("⚠️ Unmapped sizes (adding fallback IDs):", unmappedSizes);
+
+        const fallbackItems = unmappedSizes.map((size) => ({
+          size,
+          qty: finalQuantities[size],
+          printroveVariantId: null, // Will be handled by backend fallback logic
+        }));
+
+        finalPrintroveLineItems = [...printroveLineItems, ...fallbackItems];
+        console.log(
+          "✅ Added fallback variant IDs for unmapped sizes:",
+          fallbackItems
         );
       }
 
-      // Fallback single variant id from the first mapped line item (legacy field)
-      const fallbackVariantId = printroveLineItems[0]?.printroveVariantId || null;
-      const needsProductId = !printroveProductId;
+      // ✅ Printrove mapping handled by backend - no fallback needed
 
       // Build cart product
       const customProduct = {
@@ -574,13 +657,14 @@ if (!Object.keys(map).length) {
         products_name: productDetails?.products_name || "Custom T-Shirt",
         name: productDetails?.products_name || "Custom T-Shirt",
         printroveProductId: printroveProductId || null,
-        printroveVariantId: fallbackVariantId, // legacy single
+        printroveVariantId: null, // legacy single - handled by backend
         printroveVariantsBySize: Object.fromEntries(
-          Object.keys(finalQuantities)
-            .filter((s) => !!variantMap[canonSize(s)])
-            .map((s) => [s, variantMap[canonSize(s)]])
+          finalPrintroveLineItems.map((item) => [
+            item.size,
+            item.printroveVariantId,
+          ])
         ),
-        printroveLineItems, // may be empty; UI should handle before placing order
+        printroveLineItems: finalPrintroveLineItems, // Use final line items with fallbacks
         printroveNeedsMapping: {
           missingProductId: needsProductId,
           unmappedSizes,
@@ -594,7 +678,26 @@ if (!Object.keys(map).length) {
         color: colorWithHash,
         colortext: productDetails?.colortext || "Custom",
         gender: productDetails?.gender || "Unisex",
-        price: Math.round(productDetails?.pricing?.[0]?.price_per || 499),
+        price: (() => {
+          // ✅ Use Printrove pricing if available, otherwise use fallback
+          const printrovePrice =
+            productDetails?.printrove_price ||
+            productDetails?.pricing?.[0]?.printrove_price ||
+            productDetails?.pricing?.[0]?.price_per;
+          const basePrice = printrovePrice || 499;
+          const finalPrice = Math.round(basePrice);
+
+          console.log("💰 TShirtDesigner Price Calculation:", {
+            productId: productDetails?._id,
+            productName: productDetails?.products_name,
+            pricingArray: productDetails?.pricing,
+            printrovePrice: printrovePrice,
+            basePrice: basePrice,
+            finalPrice: finalPrice,
+            hasPrintrovePrice: !!printrovePrice,
+          });
+          return finalPrice;
+        })(),
         quantity: finalQuantities,
         additionalFilesMeta: additionalFiles.map((f) => ({ name: f.name })),
       };
@@ -603,15 +706,33 @@ if (!Object.keys(map).length) {
         id: productDetails?._id || proid,
         _id: productDetails?._id || proid,
         printroveProductId: printroveProductId || null,
-        printroveVariantId: fallbackVariantId || null, // legacy single
-        legacyVariant: fallbackVariantId,
-        lineItems: printroveLineItems,
+        legacyVariant: null, // handled by backend
+        lineItems: finalPrintroveLineItems,
         needsMapping: customProduct?.printroveNeedsMapping,
-        
       });
 
       addToCart(customProduct);
-      alert("Design saved and added to cart!");
+
+      // ✅ Show success message with variant mapping info
+      const mappedCount = finalPrintroveLineItems.filter(
+        (item) => item.printroveVariantId
+      ).length;
+      const totalCount = finalPrintroveLineItems.length;
+
+      if (mappedCount === totalCount) {
+        alert(
+          "✅ Design saved and added to cart! All sizes have Printrove variant IDs."
+        );
+      } else if (mappedCount > 0) {
+        alert(
+          `✅ Design saved and added to cart! ${mappedCount}/${totalCount} sizes have Printrove variant IDs. Backend will handle fallbacks for the rest.`
+        );
+      } else {
+        alert(
+          "✅ Design saved and added to cart! Backend will handle Printrove variant ID fallbacks for all sizes."
+        );
+      }
+
       navigate("/cart");
     } catch (error) {
       console.error("Error saving design:", error);

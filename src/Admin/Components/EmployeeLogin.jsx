@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = import.meta?.env?.VITE_API_BASE || "https://duco-backend.onrender.com/api/";
+const API_BASE = "http://localhost:3000/api/";
 
 const EmployeeLogin = () => {
   const [form, setForm] = useState({ employeeid: "", password: "" });
@@ -41,7 +41,6 @@ const EmployeeLogin = () => {
       >
         <h1 className="text-xl font-semibold">Employee Login</h1>
 
-     
         <input
           className="w-full p-2 rounded bg-gray-700 outline-none"
           placeholder="Employee ID"

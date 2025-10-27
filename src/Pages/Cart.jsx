@@ -261,6 +261,7 @@ const Cart = () => {
       });
       setCart(merged);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products]);
 
   const actualData = useMemo(() => {
@@ -293,6 +294,8 @@ const Cart = () => {
           (a, q) => a + safeNum(q),
           0
         ) || 0;
+      Object.values(item.quantity || {}).reduce((a, q) => a + safeNum(q), 0) ||
+        0;
       const sides = countDesignSides(item);
       return acc + qty * sides;
     }, 0);
@@ -409,12 +412,24 @@ const Cart = () => {
   }, [baseTotal, priceIncrease, conversionRate]);
 
   if (loadingProducts) return <Loading />;
+
   if (!cart.length)
     return (
       <div className="p-8 text-center text-gray-400 text-xl">
         Your cart is empty.
       </div>
     );
+
+  const printingRateLabel =
+    printingPerSide > 0
+      ? `₹${safeNum(printingPerSide).toFixed(2)}/side`
+      : `${safeNum(printPerUnit).toFixed(2)}/unit`;
+  const pfLabel =
+    pfFlat > 0
+      ? `${safeNum(pfPerUnit).toFixed(2)}/unit + flat ₹${safeNum(
+          pfFlat
+        ).toFixed(2)}`
+      : `${safeNum(pfPerUnit).toFixed(2)}/unit`;
 
   return (
     <div className="min-h-screen text-white p-8">

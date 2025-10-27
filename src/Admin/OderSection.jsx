@@ -4,14 +4,22 @@ import OrderDetailsCard from "../Admin/Components/OrderDetailsCard"; // ✅ ensu
 // ✅ Better status badge colors
 const statusClass = (s = "") => {
   switch (s) {
-    case "Pending": return "bg-amber-500 text-white";
-    case "Processing": return "bg-sky-500 text-white";
-    case "Shipped": return "bg-purple-500 text-white";
-    case "Delivered": return "bg-emerald-500 text-white";
-    case "Cancelled": return "bg-rose-500 text-white";
-    case "Payment Verification Failed": return "bg-red-500 text-white";
-    case "Payment Verification Failed (50%)": return "bg-orange-500 text-white";
-    default: return "bg-gray-400 text-white";
+    case "Pending":
+      return "bg-amber-500 text-white";
+    case "Processing":
+      return "bg-sky-500 text-white";
+    case "Shipped":
+      return "bg-purple-500 text-white";
+    case "Delivered":
+      return "bg-emerald-500 text-white";
+    case "Cancelled":
+      return "bg-rose-500 text-white";
+    case "Payment Verification Failed":
+      return "bg-red-500 text-white";
+    case "Payment Verification Failed (50%)":
+      return "bg-orange-500 text-white";
+    default:
+      return "bg-gray-400 text-white";
   }
 };
 
@@ -22,7 +30,7 @@ const OderSection = () => {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch("https://duco-backend.onrender.com/api/order");
+      const res = await fetch("http://localhost:3000/api/order");
       const data = await res.json();
 
       // ✅ handle both formats {orders: [...]} or [...]
@@ -108,7 +116,9 @@ const OderSection = () => {
 
                   <p className="text-xs text-gray-700 mt-1">
                     {order?.address?.fullName
-                      ? `${order.address.fullName} • ${order.address.city || ""}`
+                      ? `${order.address.fullName} • ${
+                          order.address.city || ""
+                        }`
                       : "No address"}
                   </p>
 

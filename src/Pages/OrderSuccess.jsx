@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom"; // ✅ added useLocation
 import { getInvoiceByOrder } from "../Service/APIservice";
 import { useCart } from "../ContextAPI/CartContext";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import JsBarcode from "jsbarcode";
 
-/* ----------------------------- INVOICE TEMPLATE ----------------------------- */
+// ✅ INVOICE COMPONENT
 const InvoiceDucoTailwind = ({ data }) => {
   const barcodeRef = useRef(null);
 
@@ -32,18 +32,7 @@ const InvoiceDucoTailwind = ({ data }) => {
     total,
     terms,
     forCompany,
-    locationTax,
   } = data;
-
-  // Compute actual numeric location adjustment
-  const locationAdj =
-    locationTax?.percentage
-      ? ((subtotal + (charges?.pf || 0) + (charges?.printing || 0)) *
-          locationTax.percentage) /
-        100
-      : 0;
-
-  const adjustedTotal = total + locationAdj;
 
   return (
     <div
@@ -121,12 +110,7 @@ const InvoiceDucoTailwind = ({ data }) => {
           {items.map((it, i) => (
             <tr key={i} style={{ borderBottom: "1px solid #ddd" }}>
               <td style={{ padding: "6px" }}>{i + 1}</td>
-              <td style={{ padding: "6px" }}>
-                {it.description}
-                {it.printSides && it.printSides > 0
-                  ? ` • ${it.printSides} sides × ${it.qty}`
-                  : ""}
-              </td>
+              <td style={{ padding: "6px" }}>{it.description}</td>
               <td style={{ padding: "6px" }}>{it.qty}</td>
               <td style={{ padding: "6px" }}>{it.unit}</td>
               <td style={{ padding: "6px" }}>₹{it.price}</td>
@@ -175,40 +159,18 @@ const InvoiceDucoTailwind = ({ data }) => {
                 ₹{charges.printing.toFixed(2)}
               </td>
             </tr>
-
-            {/* ✅ Location-based Adjustment */}
-            {locationTax && locationTax.percentage ? (
-              <tr>
-                <td style={{ padding: "6px" }}>
-                  Location Adjustment ({locationTax.country})
-                </td>
-                <td style={{ textAlign: "right", padding: "6px" }}>
-                  +{locationTax.percentage}%{" "}
-                  {locationTax.currency?.country
-                    ? `(${locationTax.currency.country})`
-                    : ""}
-                  <br />₹{locationAdj.toFixed(2)}
-                </td>
-              </tr>
-            ) : null}
-
             <tr>
-              <td style={{ padding: "6px" }}>
-                CGST ({tax.cgstRate}%)
-              </td>
+              <td style={{ padding: "6px" }}>CGST ({tax.cgstRate}%)</td>
               <td style={{ textAlign: "right", padding: "6px" }}>
                 ₹{tax.cgstAmount.toFixed(2)}
               </td>
             </tr>
             <tr>
-              <td style={{ padding: "6px" }}>
-                SGST ({tax.sgstRate}%)
-              </td>
+              <td style={{ padding: "6px" }}>SGST ({tax.sgstRate}%)</td>
               <td style={{ textAlign: "right", padding: "6px" }}>
                 ₹{tax.sgstAmount.toFixed(2)}
               </td>
             </tr>
-
             <tr
               style={{
                 borderTop: "2px solid #000",
@@ -218,7 +180,7 @@ const InvoiceDucoTailwind = ({ data }) => {
             >
               <td style={{ padding: "6px" }}>Grand Total:</td>
               <td style={{ textAlign: "right", padding: "6px" }}>
-                ₹{adjustedTotal.toFixed(2)}
+                ₹{total.toFixed(2)}
               </td>
             </tr>
           </tbody>
@@ -240,89 +202,55 @@ const InvoiceDucoTailwind = ({ data }) => {
   );
 };
 
-/* ------------------------------ ORDER SUCCESS ------------------------------ */
+// ✅ MAIN ORDER SUCCESS COMPONENT
 export default function OrderSuccess() {
-  const { orderId: paramId } = useParams();
+  const { orderId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); // ✅ access state
   const [invoiceData, setInvoiceData] = useState(null);
   const { clearCart } = useCart();
   const invoiceRef = useRef();
 
-  const orderId = paramId || localStorage.getItem("lastOrderId");
-  const storedMeta = JSON.parse(localStorage.getItem("lastOrderMeta") || "{}");
-
-  const paymentMeta =
-    location.state?.paymentMeta ||
-    storedMeta ||
-    {};
-  const paymentMethod =
-    paymentMeta.mode === "store_pickup"
-      ? "Pay on Store (Pickup)"
-      : paymentMeta.mode === "netbanking"
-      ? "Netbanking / UPI"
-      : "Pay Online";
-  const isB2B = paymentMeta?.isCorporate || false;
+  // ✅ Read passed data (if available)
+  const paymentMethod = location.state?.paymentMethod || "Pay Online (Default)";
+  const isB2B =
+    location.state?.isB2B !== undefined ? location.state.isB2B : false;
 
   console.log("💳 Payment Mode:", paymentMethod);
   console.log("🏢 Order Type:", isB2B ? "B2B" : "B2C");
 
-  /* ✅ FIXED INVOICE LOGIC: accurate charges + gst like cart + side printing info */
   useEffect(() => {
     async function fetchInvoice() {
       try {
-        if (!orderId) throw new Error("No Order ID found");
-
         const res = await getInvoiceByOrder(orderId);
         const inv = res?.invoice;
         if (!inv) throw new Error("No invoice found");
 
-        const items = inv.items?.map((it, i) => ({
-          ...it,
-          sno: i + 1,
-          printSides: it.printSides || it.sides || 0,
-        })) || [];
-
-        const subtotal = items.reduce(
+        // ✅ Calculate subtotal dynamically
+        const subtotal = inv.items.reduce(
           (sum, item) => sum + Number(item.qty || 0) * Number(item.price || 0),
           0
         );
 
-        const pf = Number(inv.charges?.pf ?? inv.pfCharges ?? 0);
-        const printing = Number(inv.charges?.printing ?? inv.printingCharges ?? 0);
-        const gstRate = inv.tax?.igstRate ?? inv.tax?.gstRate ?? inv.gstRate ?? 5;
-        const gstTotal =
-          inv.tax?.igstAmount ??
-          inv.gstTotal ??
-          ((subtotal + pf + printing) * gstRate) / 100;
+        const pf = inv.charges?.pf || 0;
+        const printing = inv.charges?.printing || 0;
 
-        const cgstRate = inv.tax?.cgstRate ?? gstRate / 2;
-        const sgstRate = inv.tax?.sgstRate ?? gstRate / 2;
-        const cgstAmount = inv.tax?.cgstAmount ?? gstTotal / 2;
-        const sgstAmount = inv.tax?.sgstAmount ?? gstTotal / 2;
-
-        // ✅ Add location-based adjustment
-        const locationTax = inv.locationTax || paymentMeta.locationTax || null;
-        const locationAdj =
-          locationTax?.percentage
-            ? ((subtotal + pf + printing) * locationTax.percentage) / 100
-            : 0;
-
-        const total =
-          Number(inv.total ?? inv.totalPay) ||
-          subtotal + pf + printing + gstTotal + locationAdj;
+        // ✅ Correct GST split
+        const gstRate = inv.tax?.igstRate || 5;
+        const gstTotal = (subtotal * gstRate) / 100;
+        const cgstRate = gstRate / 2;
+        const sgstRate = gstRate / 2;
+        const cgstAmount = gstTotal / 2;
+        const sgstAmount = gstTotal / 2;
+        const total = subtotal + pf + printing + gstTotal;
 
         const formatted = {
           ...inv,
-          items,
-          charges: { pf, printing },
           tax: { cgstRate, sgstRate, cgstAmount, sgstAmount },
           subtotal,
           total,
-          locationTax,
         };
 
-        console.log("🧾 Normalized Invoice for Success Page:", formatted);
         setInvoiceData(formatted);
         clearCart();
       } catch (err) {
@@ -337,13 +265,17 @@ export default function OrderSuccess() {
   const downloadPDF = async () => {
     const input = invoiceRef.current;
     if (!input) return;
+
     const canvas = await html2canvas(input, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+    const ratio = Math.min(
+      pageWidth / canvas.width,
+      pageHeight / canvas.height
+    );
     const imgWidth = canvas.width * ratio;
     const imgHeight = canvas.height * ratio;
     const marginX = (pageWidth - imgWidth) / 2;
@@ -362,6 +294,7 @@ export default function OrderSuccess() {
     );
   }
 
+  // ✅ Render Invoice
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="mx-auto max-w-4xl text-center mb-10">
@@ -381,22 +314,6 @@ export default function OrderSuccess() {
           </p>
           <p>
             <b>Order Type:</b> {isB2B ? "Corporate (B2B)" : "Retail (B2C)"}
-          </p>
-          <p>
-            <b>P&F Charges:</b> ₹{invoiceData.charges.pf.toFixed(2)} |{" "}
-            <b>Printing:</b> ₹{invoiceData.charges.printing.toFixed(2)} |{" "}
-            <b>GST (5%):</b> ₹
-            {(invoiceData.tax.cgstAmount + invoiceData.tax.sgstAmount).toFixed(2)}
-          </p>
-          {invoiceData.locationTax?.percentage ? (
-            <p>
-              <b>Location Adjustment:</b>{" "}
-              +{invoiceData.locationTax.percentage}% (
-              {invoiceData.locationTax.country})
-            </p>
-          ) : null}
-          <p>
-            <b>Grand Total:</b> ₹{invoiceData.total.toFixed(2)}
           </p>
         </div>
 

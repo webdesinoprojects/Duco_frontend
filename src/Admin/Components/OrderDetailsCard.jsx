@@ -44,14 +44,11 @@ const OrderDetailsCard = ({ orderId }) => {
   const handleStatusChange = async (newStatus) => {
     setOrder((prev) => ({ ...prev, status: newStatus }));
     try {
-      await fetch(
-        `https://duco-backend.onrender.com/api/order/update/${orderId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
+      await fetch(`http://localhost:3000/api/order/update/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
     } catch (err) {
       console.error("Failed to update status", err);
     }
@@ -79,9 +76,7 @@ const OrderDetailsCard = ({ orderId }) => {
     (async () => {
       try {
         console.log("📡 Fetching order:", orderId);
-        const res = await fetch(
-          `https://duco-backend.onrender.com/api/order/${orderId}`
-        );
+        const res = await fetch(`http://localhost:3000/api/order/${orderId}`);
         const data = await res.json();
         console.log("🧾 Order fetched:", data);
         setOrder(data);
@@ -97,7 +92,7 @@ const OrderDetailsCard = ({ orderId }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("https://duco-backend.onrender.com/api/products");
+        const res = await fetch("http://localhost:3000/api/products");
         const data = await res.json();
         if (Array.isArray(data)) setAllProducts(data);
       } catch (err) {
@@ -295,9 +290,7 @@ const OrderDetailsCard = ({ orderId }) => {
                         {item.colortext || item.color || "-"}
                       </span>
                       &nbsp;|&nbsp; Qty:&nbsp;
-                      <span className="font-medium">
-                        {item.qty || qtySum}
-                      </span>
+                      <span className="font-medium">{item.qty || qtySum}</span>
                     </div>
 
                     <div className="mt-2">
@@ -356,7 +349,9 @@ const OrderDetailsCard = ({ orderId }) => {
                 <div className="mt-3 space-y-2">
                   {(design.uploadedLogo || design.uploaded_logo) && (
                     <div className="text-xs">
-                      <p className="font-medium text-gray-800">Uploaded Logo:</p>
+                      <p className="font-medium text-gray-800">
+                        Uploaded Logo:
+                      </p>
                       <a
                         href={design.uploadedLogo || design.uploaded_logo}
                         target="_blank"

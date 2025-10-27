@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import Navbar from "../Admin/Navbar";
-import AdminCartItem from './Components/AdminCartItem';
+import AdminCartItem from "./Components/AdminCartItem";
 import tshirt from "../assets/gloomy-young-black-model-clean-white-unlabeled-cotton-t-shirt-removebg-preview.png";
 import axios from "axios";
 
@@ -10,7 +10,7 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get("https://duco-backend.onrender.com/products/get");
+        const res = await axios.get("http://localhost:3000/products/get");
         setProducts(res.data); // ✅ use res.data
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -23,7 +23,7 @@ const Home = () => {
   // Additional state or functions from previous updates can go here
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`https://duco-backend.onrender.com/products/delete/${id}`);
+      await axios.delete(`http://localhost:3000/products/delete/${id}`);
       setProducts((prev) => prev.filter((p) => p._id !== id));
       console.log("Deleted product:", id);
     } catch (err) {
@@ -36,8 +36,10 @@ const Home = () => {
       {/* Added Navbar from previous updates */}
       <Navbar />
 
-      <h1 className="text-2xl font-bold text-center mt-4">Welcome to Admin Dashboard</h1>
-      
+      <h1 className="text-2xl font-bold text-center mt-4">
+        Welcome to Admin Dashboard
+      </h1>
+
       <div className="max-w-4xl mx-auto mt-6 p-4">
         {products?.map((p, i) => (
           <AdminCartItem

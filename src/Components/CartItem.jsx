@@ -9,6 +9,9 @@ const CartItem = ({ item, removeFromCart, updateQuantity }) => {
   const { toConvert, priceIncrease } = usePriceContext();
 
   function calculatePrice(currency, ac, high) {
+    if (!currency || !ac || high === null) {
+      return ac || 0; // Return base price if context not ready
+    }
     const actualPrice = currency * ac;
     const finalPrice = actualPrice + actualPrice * (high / 100);
     return Math.ceil(finalPrice); // ✅ round up to integer
@@ -53,7 +56,8 @@ const CartItem = ({ item, removeFromCart, updateQuantity }) => {
           {/* ✅ Quantity Handling (multi-size display) */}
           <div className="flex flex-wrap gap-2 mt-2">
             {item.quantity && typeof item.quantity === "object" ? (
-              Object.entries(item.quantity).filter(([_, count]) => count > 0).length > 0 ? (
+              Object.entries(item.quantity).filter(([_, count]) => count > 0)
+                .length > 0 ? (
                 Object.entries(item.quantity).map(([size, count]) =>
                   count > 0 ? (
                     <span
@@ -65,14 +69,10 @@ const CartItem = ({ item, removeFromCart, updateQuantity }) => {
                   ) : null
                 )
               ) : (
-                <span className="px-2 py-1 text-xs rounded border">
-                  Qty: 1
-                </span>
+                <span className="px-2 py-1 text-xs rounded border">Qty: 1</span>
               )
             ) : (
-              <span className="px-2 py-1 text-xs rounded border">
-                Qty: 1
-              </span>
+              <span className="px-2 py-1 text-xs rounded border">Qty: 1</span>
             )}
           </div>
 

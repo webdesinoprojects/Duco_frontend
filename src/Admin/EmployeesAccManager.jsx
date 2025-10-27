@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
    Keep endpoints centralized & typed here
    =========================================== */
 
-const API_BASE = import.meta?.env?.VITE_API_BASE || "https://duco-backend.onrender.com/api";
+const API_BASE = "http://localhost:3000/";
 
 /** Build querystring for GET /employeesacc?url=&employeeid= */
 const getEmployeesAcc = async (params = {}) => {
@@ -64,7 +64,13 @@ const Field = ({ label, required, children }) => (
   </label>
 );
 
-const Button = ({ children, type = "button", onClick, disabled, className = "" }) => (
+const Button = ({
+  children,
+  type = "button",
+  onClick,
+  disabled,
+  className = "",
+}) => (
   <button
     type={type}
     onClick={onClick}
@@ -107,7 +113,7 @@ const EmployeesAccManager = () => {
   // filters
   const [filters, setFilters] = useState({ url: "", employeeid: "" });
 
-  console.log(rows)
+  console.log(rows);
 
   // create state
   const [form, setForm] = useState(emptyForm);
@@ -128,7 +134,8 @@ const EmployeesAccManager = () => {
     try {
       const params = {};
       if (filters.url.trim()) params.url = filters.url.trim();
-      if (filters.employeeid.trim()) params.employeeid = filters.employeeid.trim();
+      if (filters.employeeid.trim())
+        params.employeeid = filters.employeeid.trim();
       const list = await getEmployeesAcc(params);
       setRows(Array.isArray(list) ? list : []);
     } catch (err) {
@@ -207,7 +214,10 @@ const EmployeesAccManager = () => {
      RENDER
      =========================================== */
   return (
-    <div className="min-h-screen" style={{ backgroundColor: BG, color: "#FFFFFF" }}>
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: BG, color: "#FFFFFF" }}
+    >
       <div className="max-w-6xl mx-auto p-6">
         {/* HEADER */}
         <header className="mb-6 flex items-center justify-between">
@@ -220,7 +230,9 @@ const EmployeesAccManager = () => {
           <Field label="Filter by URL">
             <input
               value={filters.url}
-              onChange={(e) => setFilters((s) => ({ ...s, url: e.target.value }))}
+              onChange={(e) =>
+                setFilters((s) => ({ ...s, url: e.target.value }))
+              }
               className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
               placeholder="acme.example.com"
             />
@@ -228,7 +240,9 @@ const EmployeesAccManager = () => {
           <Field label="Filter by Employee ID">
             <input
               value={filters.employeeid}
-              onChange={(e) => setFilters((s) => ({ ...s, employeeid: e.target.value }))}
+              onChange={(e) =>
+                setFilters((s) => ({ ...s, employeeid: e.target.value }))
+              }
               className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
               placeholder="EMP001"
             />
@@ -253,11 +267,16 @@ const EmployeesAccManager = () => {
         >
           <h2 className="text-xl font-semibold mb-4">Create Employee Access</h2>
 
-          <form onSubmit={onCreate} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <form
+            onSubmit={onCreate}
+            className="grid grid-cols-1 md:grid-cols-2 gap-5"
+          >
             <Field label="URL" required>
               <input
                 value={form.url}
-                onChange={(e) => setForm((s) => ({ ...s, url: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, url: e.target.value }))
+                }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                 placeholder="acme.example.com"
               />
@@ -266,7 +285,9 @@ const EmployeesAccManager = () => {
             <Field label="Employee ID" required>
               <input
                 value={form.employeeid}
-                onChange={(e) => setForm((s) => ({ ...s, employeeid: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, employeeid: e.target.value }))
+                }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                 placeholder="EMP001"
               />
@@ -276,7 +297,9 @@ const EmployeesAccManager = () => {
               <input
                 type="password"
                 value={form.password}
-                onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, password: e.target.value }))
+                }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                 placeholder="••••••••"
               />
@@ -288,7 +311,10 @@ const EmployeesAccManager = () => {
                 onChange={(e) =>
                   setForm((s) => ({
                     ...s,
-                    employeesdetails: { ...s.employeesdetails, name: e.target.value },
+                    employeesdetails: {
+                      ...s.employeesdetails,
+                      name: e.target.value,
+                    },
                   }))
                 }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -302,7 +328,10 @@ const EmployeesAccManager = () => {
                 onChange={(e) =>
                   setForm((s) => ({
                     ...s,
-                    employeesdetails: { ...s.employeesdetails, email: e.target.value },
+                    employeesdetails: {
+                      ...s.employeesdetails,
+                      email: e.target.value,
+                    },
                   }))
                 }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -316,7 +345,10 @@ const EmployeesAccManager = () => {
                 onChange={(e) =>
                   setForm((s) => ({
                     ...s,
-                    employeesdetails: { ...s.employeesdetails, role: e.target.value },
+                    employeesdetails: {
+                      ...s.employeesdetails,
+                      role: e.target.value,
+                    },
                   }))
                 }
                 className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -329,7 +361,9 @@ const EmployeesAccManager = () => {
                 <textarea
                   rows={3}
                   value={form.employeesNote}
-                  onChange={(e) => setForm((s) => ({ ...s, employeesNote: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, employeesNote: e.target.value }))
+                  }
                   className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                   placeholder="Any internal note…"
                 />
@@ -381,11 +415,19 @@ const EmployeesAccManager = () => {
                   <tr key={row._id} className="border-b border-white/5">
                     <td className="py-2 pr-4">{row.url}</td>
                     <td className="py-2 pr-4">{row.employeeid}</td>
-                    <td className="py-2 pr-4">{row.employeesdetails?.name || "-"}</td>
-                    <td className="py-2 pr-4">{row.employeesdetails?.email || "-"}</td>
-                    <td className="py-2 pr-4">{row.employeesdetails?.role || "-"}</td>
                     <td className="py-2 pr-4">
-                      <span className="line-clamp-2">{row.employeesNote || "-"}</span>
+                      {row.employeesdetails?.name || "-"}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {row.employeesdetails?.email || "-"}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {row.employeesdetails?.role || "-"}
+                    </td>
+                    <td className="py-2 pr-4">
+                      <span className="line-clamp-2">
+                        {row.employeesNote || "-"}
+                      </span>
                     </td>
                     <td className="py-2 pr-4">
                       <GhostBtn onClick={() => openEdit(row)}>Edit</GhostBtn>
@@ -406,7 +448,10 @@ const EmployeesAccManager = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Update Employee</h3>
-                <button onClick={closeEdit} className="text-gray-300 hover:text-white">
+                <button
+                  onClick={closeEdit}
+                  className="text-gray-300 hover:text-white"
+                >
                   ✕
                 </button>
               </div>
@@ -415,14 +460,18 @@ const EmployeesAccManager = () => {
                 <Field label="URL" required>
                   <input
                     value={edit.url}
-                    onChange={(e) => setEdit((s) => ({ ...s, url: e.target.value }))}
+                    onChange={(e) =>
+                      setEdit((s) => ({ ...s, url: e.target.value }))
+                    }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                   />
                 </Field>
                 <Field label="Employee ID" required>
                   <input
                     value={edit.employeeid}
-                    onChange={(e) => setEdit((s) => ({ ...s, employeeid: e.target.value }))}
+                    onChange={(e) =>
+                      setEdit((s) => ({ ...s, employeeid: e.target.value }))
+                    }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                   />
                 </Field>
@@ -430,7 +479,9 @@ const EmployeesAccManager = () => {
                   <input
                     type="password"
                     value={edit.password}
-                    onChange={(e) => setEdit((s) => ({ ...s, password: e.target.value }))}
+                    onChange={(e) =>
+                      setEdit((s) => ({ ...s, password: e.target.value }))
+                    }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                     placeholder="••••••••"
                   />
@@ -441,7 +492,10 @@ const EmployeesAccManager = () => {
                     onChange={(e) =>
                       setEdit((s) => ({
                         ...s,
-                        employeesdetails: { ...s.employeesdetails, name: e.target.value },
+                        employeesdetails: {
+                          ...s.employeesdetails,
+                          name: e.target.value,
+                        },
                       }))
                     }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -453,7 +507,10 @@ const EmployeesAccManager = () => {
                     onChange={(e) =>
                       setEdit((s) => ({
                         ...s,
-                        employeesdetails: { ...s.employeesdetails, email: e.target.value },
+                        employeesdetails: {
+                          ...s.employeesdetails,
+                          email: e.target.value,
+                        },
                       }))
                     }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -465,7 +522,10 @@ const EmployeesAccManager = () => {
                     onChange={(e) =>
                       setEdit((s) => ({
                         ...s,
-                        employeesdetails: { ...s.employeesdetails, role: e.target.value },
+                        employeesdetails: {
+                          ...s.employeesdetails,
+                          role: e.target.value,
+                        },
                       }))
                     }
                     className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
@@ -476,7 +536,12 @@ const EmployeesAccManager = () => {
                     <textarea
                       rows={3}
                       value={edit.employeesNote}
-                      onChange={(e) => setEdit((s) => ({ ...s, employeesNote: e.target.value }))}
+                      onChange={(e) =>
+                        setEdit((s) => ({
+                          ...s,
+                          employeesNote: e.target.value,
+                        }))
+                      }
                       className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 outline-none"
                     />
                   </Field>

@@ -63,19 +63,20 @@ export const CartProvider = ({ children }) => {
     } else {
       const finalData = {
         ...product,
-        printroveProductId: product.printroveProductId || null,
-        printroveVariantId: product.printroveVariantId || null,
+        // ✅ Pass product ID for mapping lookup
+        productId: product._id || product.id,
+        // ✅ Pass color information for variant mapping
+        color: product.color || product.colorcode || "#000000",
+        // ✅ Printrove mapping handled by backend - no need to store these fields
+        previewImages: product.previewImages || {
+          front: product.image_url?.[0]?.url?.[0] || "/fallback.png",
+          back: null,
+          left: null,
+          right: null,
+        },
       };
 
       console.log("🧾 Added to cart:", finalData);
-      console.log("✅ Check IDs →", {
-            printroveProductId: finalData.printroveProductId,
-            printroveVariantId: finalData.printroveVariantId,
-});
-
-      if (!finalData.printroveProductId || !finalData.printroveVariantId) {
-        console.warn("⚠️ Missing Printrove IDs in cart item:", finalData);
-      }
 
       setCart((prev) => [...prev, finalData]);
     }

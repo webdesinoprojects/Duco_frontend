@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import SectionHome1 from '../Components/SectionHome1.jsx';
-import SectionHome2 from '../Components/SectionHome2.jsx';
-import SectionHome3 from '../Components/SectionHome3.jsx';
-import TrendingHome from '../Components/TrendingHome.jsx';
-import BannerHome from '../Components/BannerHome.jsx';
-import axios from 'axios';
-import { usePriceContext } from '../ContextAPI/PriceContext.jsx';
+import React, { useEffect, useState } from "react";
+import SectionHome1 from "../Components/SectionHome1.jsx";
+import SectionHome2 from "../Components/SectionHome2.jsx";
+import SectionHome3 from "../Components/SectionHome3.jsx";
+import TrendingHome from "../Components/TrendingHome.jsx";
+import BannerHome from "../Components/BannerHome.jsx";
+import axios from "axios";
+import { usePriceContext } from "../ContextAPI/PriceContext.jsx";
 
 const continentMapping = {
-  "IN": "Asia",
-  "US": "North America",
-  "GB": "Europe",
-  "AU": "Australia",
+  IN: "Asia",
+  US: "North America",
+  GB: "Europe",
+  AU: "Australia",
 };
 
 const Home = () => {
@@ -28,7 +28,8 @@ const Home = () => {
   ]);
 
   useEffect(() => {
-    axios.get("https://ipapi.co/json/")
+    axios
+      .get("https://ipapi.co/json/")
       .then((response) => {
         const data = response.data;
         setLocation(continentMapping[data?.country] || "Not available");
@@ -37,7 +38,7 @@ const Home = () => {
 
     const fetchBanner = async () => {
       try {
-        const res = await axios.get("https://duco-backend.onrender.com/api/banners");
+        const res = await axios.get("http://localhost:3000/api/banners");
         setBanner(res.data.banners?.[0]?.link || "");
       } catch (err) {
         console.error("Failed to fetch banner data:", err);
@@ -50,10 +51,14 @@ const Home = () => {
   }, [setLocation]);
 
   return (
-    <div className='h-full bg-[#0A0A0A] w-full text-white'>
+    <div className="h-full bg-[#0A0A0A] w-full text-white">
       <SectionHome1 imglink={banner} Loading={Loading} />
       <SectionHome2 />
-      <BannerHome link={"https://ik.imagekit.io/vuavxn05l/5213288.jpg?updatedAt=1757162698605"} />
+      <BannerHome
+        link={
+          "https://ik.imagekit.io/vuavxn05l/5213288.jpg?updatedAt=1757162698605"
+        }
+      />
       <TrendingHome />
       <SectionHome3 />
 
@@ -67,7 +72,7 @@ const Home = () => {
             <div
               key={idx}
               className="flex-shrink-0 rounded-xl overflow-hidden shadow-lg bg-gray-800"
-              style={{ width: '300px', aspectRatio: '16/9' }}
+              style={{ width: "300px", aspectRatio: "16/9" }}
             >
               <video
                 className="w-full h-full object-cover"
@@ -86,8 +91,12 @@ const Home = () => {
       {/* Tailwind animation keyframes */}
       <style jsx>{`
         @keyframes marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
+          0% {
+            transform: translateX(0%);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
         }
         .animate-marquee {
           display: flex;

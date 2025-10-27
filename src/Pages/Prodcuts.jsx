@@ -2,10 +2,16 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link, useLocation } from "react-router-dom";
 import { FaFilter } from "react-icons/fa";
+import { usePriceContext } from "../ContextAPI/PriceContext";
 
 const Products = ({ gender }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const {
+    toConvert,
+    priceIncrease,
+    isLoading: priceLoading,
+  } = usePriceContext();
 
   // Filters
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -13,6 +19,25 @@ const Products = ({ gender }) => {
   const [sortOption, setSortOption] = useState("");
 
   const location = useLocation();
+
+  // Price calculation function
+  const calculatePrice = (basePrice) => {
+    if (!basePrice || !toConvert || priceIncrease === null) {
+      console.log("💰 Using base price (context not ready):", basePrice);
+      return basePrice || 0; // Return base price if context not ready
+    }
+    const actualPrice = toConvert * basePrice;
+    const finalPrice = Math.round(
+      actualPrice + actualPrice * (priceIncrease / 100)
+    );
+    console.log("💰 Price calculation:", {
+      basePrice,
+      toConvert,
+      priceIncrease,
+      finalPrice,
+    });
+    return finalPrice;
+  };
 
   // Normalize gender value
   const normalizeGender = (g) => g?.toLowerCase().trim();
@@ -27,10 +52,10 @@ const Products = ({ gender }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await axios.get(
-          "https://duco-backend.onrender.com/products/get"
-        );
+        console.log("🛍️ Fetching products...");
+        const res = await axios.get("http://localhost:3000/products/get");
         let allProducts = res.data || [];
+        console.log("📦 Products fetched:", allProducts.length);
 
         // 🔹 Apply gender filtering
         if (gender) {
@@ -40,11 +65,13 @@ const Products = ({ gender }) => {
             if (!g) return !gender; // allow missing gender in "All"
             return allowed.includes(g);
           });
+          console.log("🔍 After gender filtering:", allProducts.length);
         }
 
         setProducts(allProducts);
+        console.log("✅ Products set in state:", allProducts.length);
       } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error("❌ Error fetching products:", error);
       } finally {
         setLoading(false);
       }
@@ -115,7 +142,9 @@ const Products = ({ gender }) => {
         <h1 className="text-2xl md:block hidden font-bold capitalize">
           {gender ? `${gender} Products` : "All Products"}
         </h1>
-        <span className="text-gray-500">{filteredProducts.length} Products</span>
+        <span className="text-gray-500">
+          {filteredProducts.length} Products
+        </span>
       </div>
 
       <div className="flex gap-6">
@@ -255,7 +284,7 @@ const Products = ({ gender }) => {
                     </h3>
                     <p className="text-sm font-bold mt-2">
                       {product.pricing?.[0]?.price_per
-                        ? `₹${product.pricing[0].price_per}`
+                        ? `₹${calculatePrice(product.pricing[0].price_per)}`
                         : "₹N/A"}
                     </p>
                   </div>
