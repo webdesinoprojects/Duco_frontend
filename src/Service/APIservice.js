@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://localhost:3000/"; // Backend Base URL
+const API_BASE = "https://duco-backend.onrender.com/"; // Backend Base URL
 
 /* --------------------------- MONEY MANAGEMENT --------------------------- */
 export const fetchAllPrices = async () => {

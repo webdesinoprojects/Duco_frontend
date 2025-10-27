@@ -127,6 +127,25 @@ const PaymentPage = () => {
     );
   }, [orderpayload]);
 
+  // ✅ FIX: Ensure totalPay is calculated properly
+  const itemsSource =
+    cart?.length > 0
+      ? cart
+      : orderpayload?.items && orderpayload.items.length > 0
+      ? orderpayload.items
+      : [];
+
+  const calculatedTotalPay = itemsSource.reduce((sum, item) => {
+    const qty =
+      typeof item.quantity === "number"
+        ? item.quantity
+        : Object.values(item.quantity || {}).reduce(
+            (a, b) => a + Number(b || 0),
+            0
+          );
+    return sum + (item.price || 0) * qty;
+  }, 0);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A0A0A] px-4">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg relative">
@@ -189,9 +208,9 @@ const PaymentPage = () => {
                     const itemsSource =
                       cart?.length > 0
                         ? cart
-                        : localCart.length > 0
-                        ? localCart
-                        : orderpayload?.items || [];
+                        : orderpayload?.items && orderpayload.items.length > 0
+                        ? orderpayload.items
+                        : [];
 
                     console.log(
                       "🧩 Using items from:",
@@ -305,7 +324,8 @@ const PaymentPage = () => {
               <PaymentButton
                 orderData={{
                   ...orderpayload,
-                  items: cart?.length > 0 ? cart : orderpayload?.items || [],
+                  items: itemsSource,
+                  totalPay: calculatedTotalPay, // ✅ FIXED here
                 }}
               />
             </div>
