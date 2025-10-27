@@ -28,7 +28,7 @@ const Products = ({ gender }) => {
     const fetchProducts = async () => {
       try {
         const res = await axios.get(
-          "https://duco-backend.onrender.com/products/get"
+          "http://localhost:3000/products/get"
         );
         let allProducts = res.data || [];
 

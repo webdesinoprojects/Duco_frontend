@@ -12,58 +12,110 @@ export const PriceProvider = ({ children }) => {
   const [resolvedLocation, setResolvedLocation] = useState(null); // e.g. India
   const [location, setLocation] = useState(null); // detected country
 
-  /* 🌍 Auto-detect location on mount */
+  /* 🌍 Auto-detect location on mount using IP-based geolocation (VPN-aware) */
   useEffect(() => {
     const detectLocation = async () => {
-      if (!navigator.geolocation) {
-        console.warn("❌ Geolocation not supported.");
-        return;
-      }
+      try {
+        // ✅ Use IP-based geolocation (works with VPN)
+        console.log("🌍 Detecting location via IP...");
+        const ipResponse = await axios.get("https://ipapi.co/json/");
+        const data = ipResponse.data;
+        
+        console.log("📍 IP Geolocation Data:", {
+          country: data.country_name,
+          countryCode: data.country_code,
+          city: data.city,
+          continent: data.continent_code,
+          ip: data.ip
+        });
 
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const { latitude, longitude } = pos.coords;
-            const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-            if (!apiKey) {
-              console.error("❌ Missing Google API Key. Check your .env file.");
-              return;
-            }
+        // Map country to continent/region for backend
+        const continentMapping = {
+          "IN": "Asia",
+          "US": "North America", 
+          "CA": "North America",
+          "GB": "Europe",
+          "DE": "Europe",
+          "FR": "Europe",
+          "NL": "Europe", // Netherlands (Amsterdam)
+          "ES": "Europe",
+          "IT": "Europe",
+          "AU": "Australia",
+          "NZ": "Australia",
+          "CN": "Asia",
+          "JP": "Asia",
+          "KR": "Asia",
+          "SG": "Asia",
+          "AE": "Asia", // UAE
+          "SA": "Asia", // Saudi Arabia
+        };
 
-            const geoURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
-            const res = await axios.get(geoURL);
-            const results = res.data.results || [];
+        const countryCode = data.country_code || data.country;
+        const mappedLocation = continentMapping[countryCode] || data.country_name || "Unknown";
+        
+        console.log("🗺️ Mapped location:", {
+          countryCode,
+          countryName: data.country_name,
+          mappedTo: mappedLocation
+        });
 
-            let country = null;
-
-            // ✅ Loop through all results and their components
-            for (const result of results) {
-              for (const comp of result.address_components) {
-                if (comp.types.includes("country")) {
-                  country = comp.long_name; // e.g. "India"
-                  break;
-                }
-              }
-              if (country) break; // stop once found
-            }
-
-            if (country) {
-              console.log("🌍 Detected country:", country);
-              setLocation(country);
-            } else {
-              console.warn("⚠️ No country found. Setting fallback: Unknown");
-              setLocation("Unknown");
-            }
-          } catch (err) {
-            console.error("❌ Location detection failed:", err);
-            setLocation("Unknown");
-          }
-        },
-        (err) => {
-          console.warn("❌ Geolocation error:", err.message);
-          setLocation("Unknown");
+        setLocation(mappedLocation);
+      } catch (err) {
+        console.error("❌ IP-based location detection failed:", err);
+        console.log("🔄 Falling back to GPS geolocation...");
+        
+        // Fallback to GPS geolocation if IP detection fails
+        if (!navigator.geolocation) {
+          console.warn("❌ Geolocation not supported.");
+          setLocation("Asia"); // Default fallback
+          return;
         }
-      );
+
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            try {
+              const { latitude, longitude } = pos.coords;
+              const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+              if (!apiKey) {
+                console.error("❌ Missing Google API Key. Check your .env file.");
+                setLocation("Asia"); // Default fallback
+                return;
+              }
+
+              const geoURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
+              const res = await axios.get(geoURL);
+              const results = res.data.results || [];
+
+              let country = null;
+
+              for (const result of results) {
+                for (const comp of result.address_components) {
+                  if (comp.types.includes("country")) {
+                    country = comp.long_name;
+                    break;
+                  }
+                }
+                if (country) break;
+              }
+
+              if (country) {
+                console.log("🌍 GPS Detected country:", country);
+                setLocation(country);
+              } else {
+                console.warn("⚠️ No country found. Setting fallback: Asia");
+                setLocation("Asia");
+              }
+            } catch (err) {
+              console.error("❌ GPS Location detection failed:", err);
+              setLocation("Asia");
+            }
+          },
+          (err) => {
+            console.warn("❌ Geolocation error:", err.message);
+            setLocation("Asia");
+          }
+        );
+      }
     };
 
     detectLocation();
@@ -78,11 +130,13 @@ export const PriceProvider = ({ children }) => {
         console.log("📦 Fetching price data for:", location);
         const data = await getUpdatePricesByLocation(location);
 
-        if (data?.success) {
+        // Backend returns { percentage, currency } directly (no success field)
+        if (data && data.percentage !== undefined) {
+          console.log("✅ Price data received:", data);
           setPriceIncrease(data.percentage);
           setToConvert(data.currency?.toconvert || null);
           setCurrency(data.currency?.country || null);
-          setResolvedLocation(data.location);
+          setResolvedLocation(location);
         } else {
           console.warn("⚠ No price data for location:", location);
         }

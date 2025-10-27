@@ -10,8 +10,21 @@ import { usePriceContext } from '../ContextAPI/PriceContext.jsx';
 const continentMapping = {
   "IN": "Asia",
   "US": "North America",
+  "CA": "North America",
   "GB": "Europe",
+  "DE": "Europe",
+  "FR": "Europe",
+  "NL": "Europe", // Netherlands (Amsterdam)
+  "ES": "Europe",
+  "IT": "Europe",
   "AU": "Australia",
+  "NZ": "Australia",
+  "CN": "Asia",
+  "JP": "Asia",
+  "KR": "Asia",
+  "SG": "Asia",
+  "AE": "Asia", // UAE
+  "SA": "Asia", // Saudi Arabia
 };
 
 const Home = () => {
@@ -28,16 +41,27 @@ const Home = () => {
   ]);
 
   useEffect(() => {
+    console.log('Home component mounted');
+    
     axios.get("https://ipapi.co/json/")
       .then((response) => {
         const data = response.data;
-        setLocation(continentMapping[data?.country] || "Not available");
+        const mappedLocation = continentMapping[data?.country] || data?.country_name || "Asia";
+        console.log("🌍 Home detected location:", {
+          countryCode: data?.country,
+          countryName: data?.country_name,
+          mappedTo: mappedLocation
+        });
+        setLocation(mappedLocation);
       })
-      .catch(() => setLocation("Asia"));
+      .catch((err) => {
+        console.error("Failed to fetch location:", err);
+        setLocation("Asia");
+      });
 
     const fetchBanner = async () => {
       try {
-        const res = await axios.get("https://duco-backend.onrender.com/api/banners");
+        const res = await axios.get("http://localhost:3000/api/banners");
         setBanner(res.data.banners?.[0]?.link || "");
       } catch (err) {
         console.error("Failed to fetch banner data:", err);

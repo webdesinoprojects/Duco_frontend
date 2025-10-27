@@ -11,7 +11,7 @@ const UserInfo = () => {
  useEffect(() => {
     const getSubCategories = async () => {
       try {
-        const res = await axios.get("https://duco-backend.onrender.com/user/get");
+        const res = await axios.get("http://localhost:3000/user/get");
         setUser(res.data || []);
       } catch (err) {
         console.error("Error fetching subcategories:", err);
